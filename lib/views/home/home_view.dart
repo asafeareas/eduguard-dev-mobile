@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../../models/academic/academic_module.dart';
 import '../../viewmodels/home_view_model.dart';
+import '../../widgets/academic_feature_button.dart';
+import '../../widgets/class_card.dart';
+import '../../widgets/empty_state_view.dart';
+import '../../widgets/section_header.dart';
+import '../../widgets/stat_card.dart';
+import '../academic/classes_view.dart';
 
+/// Tela inicial (Dashboard) do professor no EduGuard.
 class HomeView extends StatefulWidget {
   const HomeView({super.key, required this.viewModel});
 
@@ -19,63 +25,267 @@ class _HomeViewState extends State<HomeView> {
     super.dispose();
   }
 
+  void _navigateToClasses(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ClassesView(
+          viewModel: widget.viewModel.classesViewModel,
+        ),
+      ),
+    );
+  }
+
+  void _showFeatureNotice(
+    BuildContext context,
+    String title,
+    String description,
+  ) {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        final colorScheme = theme.colorScheme;
+
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.info_outline,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                description,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Entendi'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: widget.viewModel,
       builder: (context, _) {
         final identity = widget.viewModel.identity;
+        final teacher = widget.viewModel.teacher;
         final colorScheme = Theme.of(context).colorScheme;
-        final textTheme = Theme.of(context).textTheme;
+        final theme = Theme.of(context);
 
         return Scaffold(
-          appBar: AppBar(title: Text(identity.name)),
+          appBar: AppBar(
+            title: Text(identity.name),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.notifications_none_outlined),
+                tooltip: 'Notificações',
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Sem novas notificações no momento.'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
           body: SafeArea(
-            child: ListView(
-              padding: const EdgeInsets.all(24),
-              children: [
-                Icon(
-                  Icons.school_outlined,
-                  size: 72,
-                  color: colorScheme.primary,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  identity.name,
-                  textAlign: TextAlign.center,
-                  style: textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.primary,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth > 600;
+                final horizontalPadding = isWide ? 28.0 : 16.0;
+
+                return SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: horizontalPadding,
+                    vertical: 16,
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  identity.tagline,
-                  textAlign: TextAlign.center,
-                  style: textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Versão ${identity.version}',
-                  textAlign: TextAlign.center,
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Cartão de Identificação do Professor e do Sistema
+                      _TeacherProfileHeader(
+                        identityName: identity.name,
+                        tagline: identity.tagline,
+                        version: identity.version,
+                        teacherName: teacher.name,
+                        teacherTitle: teacher.title,
+                        institution: teacher.institution,
+                        initials: teacher.initials,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Métricas rápidas / Estatísticas
+                      _StatsGrid(
+                        totalClasses: widget.viewModel.totalClassesCount,
+                        totalStudents: widget.viewModel.totalStudentsCount,
+                        todayClasses: widget.viewModel.todayClassesCount,
+                        onClassesTap: () => _navigateToClasses(context),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Seção: Funcionalidades Acadêmicas
+                      const SectionHeader(
+                        title: 'Funcionalidades Acadêmicas',
+                        subtitle: 'Acesse rapidamente suas atividades docentes',
+                      ),
+                      const SizedBox(height: 8),
+
+                      AcademicFeatureButton(
+                        isPrimary: true,
+                        title: 'Minhas Turmas',
+                        description:
+                            'Consulte turmas cadastradas, quantidade de estudantes e horários.',
+                        icon: Icons.groups_outlined,
+                        badgeText:
+                            '${widget.viewModel.totalClassesCount} turmas',
+                        onTap: () => _navigateToClasses(context),
+                      ),
+                      const SizedBox(height: 10),
+
+                      AcademicFeatureButton(
+                        title: 'Frequência dos Estudantes',
+                        description:
+                            'Registro diário de presenças e faltas por turma.',
+                        icon: Icons.checklist_outlined,
+                        onTap: () => _showFeatureNotice(
+                          context,
+                          'Frequência dos Estudantes',
+                          'Módulo para realização de chamada em sala de aula com contagem de presenças em tempo real.',
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      AcademicFeatureButton(
+                        title: 'Lançamento de Notas',
+                        description:
+                            'Acompanhe avaliações, provas, trabalhos e médias parciais.',
+                        icon: Icons.grade_outlined,
+                        onTap: () => _showFeatureNotice(
+                          context,
+                          'Lançamento de Notas',
+                          'Módulo para registro de notas e cálculo de médias conforme o regimento acadêmico.',
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      AcademicFeatureButton(
+                        title: 'Grade de Horários',
+                        description:
+                            'Visualização da grade horária semanal e salas de aula.',
+                        icon: Icons.schedule_outlined,
+                        onTap: () => _showFeatureNotice(
+                          context,
+                          'Grade de Horários',
+                          'Visualização completa da alocação de horários e salas de aula de cada disciplina.',
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Seção: Turmas em Destaque
+                      SectionHeader(
+                        title: 'Turmas em Andamento',
+                        subtitle: 'Acesso rápido às suas turmas ativas',
+                        actionLabel: 'Ver todas',
+                        onActionPressed: () => _navigateToClasses(context),
+                      ),
+                      const SizedBox(height: 8),
+
+                      if (widget.viewModel.previewClasses.isEmpty)
+                        EmptyStateView(
+                          icon: Icons.school_outlined,
+                          title: 'Nenhuma turma ativa',
+                          message:
+                              'Não há turmas cadastradas para o seu usuário neste período.',
+                          actionLabel: 'Cadastrar Turma',
+                          onActionPressed: () => _navigateToClasses(context),
+                        )
+                      else
+                        ...widget.viewModel.previewClasses.map(
+                          (academicClass) => ClassCard(
+                            academicClass: academicClass,
+                            onTap: () => _navigateToClasses(context),
+                            onAttendanceTap: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Chamada aberta para ${academicClass.name}',
+                                  ),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            },
+                            onGradesTap: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Notas de ${academicClass.name}',
+                                  ),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+
+                      const SizedBox(height: 16),
+                      Center(
+                        child: Text(
+                          '${identity.name} • ${identity.tagline}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant.withValues(
+                              alpha: 0.6,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 32),
-                Text('Módulos acadêmicos', style: textTheme.titleLarge),
-                const SizedBox(height: 4),
-                Text(
-                  'Estrutura inicial. As funcionalidades serão adicionadas nas próximas etapas.',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ...widget.viewModel.upcomingModules.map(
-                  (module) => _ModuleCard(module: module),
-                ),
-              ],
+                );
+              },
             ),
           ),
         );
@@ -84,30 +294,209 @@ class _HomeViewState extends State<HomeView> {
   }
 }
 
-class _ModuleCard extends StatelessWidget {
-  const _ModuleCard({required this.module});
+class _TeacherProfileHeader extends StatelessWidget {
+  const _TeacherProfileHeader({
+    required this.identityName,
+    required this.tagline,
+    required this.version,
+    required this.teacherName,
+    required this.teacherTitle,
+    required this.institution,
+    required this.initials,
+  });
 
-  final AcademicModule module;
+  final String identityName;
+  final String tagline;
+  final String version;
+  final String teacherName;
+  final String teacherTitle;
+  final String institution;
+  final String initials;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: Icon(_iconFor(module)),
-        title: Text(module.title),
-        subtitle: Text(module.description),
-        trailing: const Text('Em breve'),
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.primaryContainer.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: colorScheme.primary.withValues(alpha: 0.15),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 26,
+                backgroundColor: colorScheme.primary,
+                child: Text(
+                  initials,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: colorScheme.onPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Bem-vindo(a),',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    Text(
+                      teacherName,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      '$teacherTitle • $institution',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text(
+                  tagline,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'Versão $version',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
+}
 
-  IconData _iconFor(AcademicModule module) {
-    return switch (module) {
-      AcademicModule.classes => Icons.groups_outlined,
-      AcademicModule.attendance => Icons.checklist_outlined,
-      AcademicModule.grades => Icons.grade_outlined,
-      AcademicModule.timetable => Icons.schedule_outlined,
-    };
+class _StatsGrid extends StatelessWidget {
+  const _StatsGrid({
+    required this.totalClasses,
+    required this.totalStudents,
+    required this.todayClasses,
+    required this.onClassesTap,
+  });
+
+  final int totalClasses;
+  final int totalStudents;
+  final int todayClasses;
+  final VoidCallback onClassesTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Se a tela for pequena (< 340px), divide verticalmente ou empilha
+        final isVeryNarrow = constraints.maxWidth < 340;
+
+        if (isVeryNarrow) {
+          return Column(
+            children: [
+              StatCard(
+                title: 'Turmas Ativas',
+                value: '$totalClasses',
+                subtitle: 'Toque p/ ver',
+                icon: Icons.groups_outlined,
+                onTap: onClassesTap,
+              ),
+              const SizedBox(height: 8),
+              StatCard(
+                title: 'Total Estudantes',
+                value: '$totalStudents',
+                subtitle: 'Matriculados',
+                icon: Icons.people_alt_outlined,
+              ),
+              const SizedBox(height: 8),
+              StatCard(
+                title: 'Aulas Hoje',
+                value: '$todayClasses',
+                subtitle: 'Semestre 2026/2',
+                icon: Icons.calendar_today_outlined,
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(
+              child: StatCard(
+                title: 'Turmas',
+                value: '$totalClasses',
+                subtitle: 'Ativas',
+                icon: Icons.groups_outlined,
+                onTap: onClassesTap,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: StatCard(
+                title: 'Estudantes',
+                value: '$totalStudents',
+                subtitle: 'Total',
+                icon: Icons.people_alt_outlined,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: StatCard(
+                title: 'Aulas Hoje',
+                value: '$todayClasses',
+                subtitle: '2026/2',
+                icon: Icons.calendar_today_outlined,
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
