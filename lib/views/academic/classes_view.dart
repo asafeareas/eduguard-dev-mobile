@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../models/academic/academic_class.dart';
 import '../../viewmodels/academic/classes_view_model.dart';
+import '../../viewmodels/academic/students_view_model.dart';
 import '../../widgets/class_card.dart';
 import '../../widgets/empty_state_view.dart';
 import '../../widgets/error_state_view.dart';
+import 'students_view.dart';
 
 /// Tela responsável pela visualização e gestão das turmas do professor.
 class ClassesView extends StatefulWidget {
@@ -460,9 +462,14 @@ class _ClassesViewState extends State<ClassesView> {
                       return ClassCard(
                         academicClass: item,
                         onTap: () {
-                          _showFeedback(
-                            context,
-                            'Visualizando detalhes da turma: ${item.name}',
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => StudentsView(
+                                viewModel: StudentsViewModel(
+                                  academicClass: item,
+                                ),
+                              ),
+                            ),
                           );
                         },
                         onAttendanceTap: () {
