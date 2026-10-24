@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../viewmodels/attendance/attendance_view_model.dart';
 import '../../viewmodels/home_view_model.dart';
 import '../../widgets/academic_feature_button.dart';
 import '../../widgets/class_card.dart';
@@ -7,6 +8,7 @@ import '../../widgets/empty_state_view.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/stat_card.dart';
 import '../academic/classes_view.dart';
+import '../attendance/attendance_view.dart';
 
 /// Tela inicial (Dashboard) do professor no EduGuard.
 class HomeView extends StatefulWidget {
@@ -32,6 +34,77 @@ class _HomeViewState extends State<HomeView> {
           viewModel: widget.viewModel.classesViewModel,
         ),
       ),
+    );
+  }
+
+  void _showClassSelectionForAttendance(BuildContext context) {
+    final classes = widget.viewModel.classesViewModel.filteredClasses;
+    if (classes.isEmpty) {
+      _showFeatureNotice(
+        context,
+        'Frequência dos Estudantes',
+        'Não há turmas cadastradas para realizar a chamada.',
+      );
+      return;
+    }
+
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Selecione a Turma para Chamada',
+                      style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                ...classes.map(
+                  (item) => ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor:
+                          Theme.of(ctx).colorScheme.primaryContainer,
+                      child: const Icon(Icons.school_outlined, size: 20),
+                    ),
+                    title: Text(item.name),
+                    subtitle: Text('${item.code} • ${item.studentsCount} alunos'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.of(ctx).pop();
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => AttendanceView(
+                            viewModel:
+                                AttendanceViewModel(academicClass: item),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -190,11 +263,7 @@ class _HomeViewState extends State<HomeView> {
                         description:
                             'Registro diário de presenças e faltas por turma.',
                         icon: Icons.checklist_outlined,
-                        onTap: () => _showFeatureNotice(
-                          context,
-                          'Frequência dos Estudantes',
-                          'Módulo para realização de chamada em sala de aula com contagem de presenças em tempo real.',
-                        ),
+                        onTap: () => _showClassSelectionForAttendance(context),
                       ),
                       const SizedBox(height: 10),
 
@@ -248,12 +317,13 @@ class _HomeViewState extends State<HomeView> {
                             academicClass: academicClass,
                             onTap: () => _navigateToClasses(context),
                             onAttendanceTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Chamada aberta para ${academicClass.name}',
+                              Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => AttendanceView(
+                                    viewModel: AttendanceViewModel(
+                                      academicClass: academicClass,
+                                    ),
                                   ),
-                                  behavior: SnackBarBehavior.floating,
                                 ),
                               );
                             },

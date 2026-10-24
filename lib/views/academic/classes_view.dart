@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import '../../models/academic/academic_class.dart';
 import '../../viewmodels/academic/classes_view_model.dart';
 import '../../viewmodels/academic/students_view_model.dart';
+import '../../viewmodels/attendance/attendance_view_model.dart';
 import '../../widgets/class_card.dart';
 import '../../widgets/empty_state_view.dart';
 import '../../widgets/error_state_view.dart';
+import '../attendance/attendance_view.dart';
 import 'students_view.dart';
 
 /// Tela responsável pela visualização e gestão das turmas do professor.
@@ -473,9 +475,14 @@ class _ClassesViewState extends State<ClassesView> {
                           );
                         },
                         onAttendanceTap: () {
-                          _showFeedback(
-                            context,
-                            'Iniciando frequência para ${item.code} (${item.studentsCount} alunos)',
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => AttendanceView(
+                                viewModel: AttendanceViewModel(
+                                  academicClass: item,
+                                ),
+                              ),
+                            ),
                           );
                         },
                         onGradesTap: () {

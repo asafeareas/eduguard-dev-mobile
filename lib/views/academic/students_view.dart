@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../models/academic/student.dart';
 import '../../viewmodels/academic/students_view_model.dart';
+import '../../viewmodels/attendance/attendance_view_model.dart';
+import '../attendance/attendance_view.dart';
 import 'student_detail_view.dart';
 
 class StudentsView extends StatelessWidget {
@@ -9,12 +11,40 @@ class StudentsView extends StatelessWidget {
 
   final StudentsViewModel viewModel;
 
+  void _openAttendance(BuildContext context, List<Student> students) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => AttendanceView(
+          viewModel: AttendanceViewModel(
+            academicClass: viewModel.academicClass,
+            students: students,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final students = viewModel.students;
     final theme = Theme.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Estudantes')),
+      appBar: AppBar(
+        title: const Text('Estudantes'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.fact_check_outlined),
+            tooltip: 'Fazer Chamada',
+            onPressed: () => _openAttendance(context, students),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _openAttendance(context, students),
+        icon: const Icon(Icons.fact_check_outlined),
+        label: const Text('Fazer Chamada'),
+      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -40,7 +70,7 @@ class StudentsView extends StatelessWidget {
             child: students.isEmpty
                 ? const Center(child: Text('Nenhum estudante nesta turma.'))
                 : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
                     itemCount: students.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, index) => _StudentTile(
