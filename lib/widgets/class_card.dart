@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../models/academic/academic_class.dart';
+import '../theme/app_theme.dart';
+import 'app_card.dart';
+import 'status_badge.dart';
 
 /// Card reutilizável para exibição de turma cadastrada.
 class ClassCard extends StatelessWidget {
@@ -19,248 +22,155 @@ class ClassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-          width: 1,
-        ),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return AppCard(
+      onTap: onTap,
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Código e semestre
+          Row(
             children: [
-              // Linha Superior: Código e Semestre
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      academicClass.code,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.calendar_today_outlined,
-                        size: 13,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        academicClass.semester,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              StatusBadge(label: academicClass.code, tone: AppTone.accent),
+              const Spacer(),
+              Text(academicClass.semester, style: textTheme.labelMedium),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // Nome da turma e curso
+          Text(
+            academicClass.name,
+            style: textTheme.titleMedium,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: AppSpacing.xxs),
+          Text(
+            academicClass.course,
+            style: textTheme.bodySmall,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // Metadados: alunos, turno, sala
+          Wrap(
+            spacing: AppSpacing.lg,
+            runSpacing: AppSpacing.xs,
+            children: [
+              _MetaItem(
+                icon: Icons.people_alt_outlined,
+                label: '${academicClass.studentsCount} alunos',
               ),
-              const SizedBox(height: 10),
-
-              // Nome da Turma
-              Text(
-                academicClass.name,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurface,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              _MetaItem(
+                icon: Icons.schedule_rounded,
+                label: academicClass.shift,
               ),
-              const SizedBox(height: 6),
-
-              // Curso
-              Row(
-                children: [
-                  Icon(
-                    Icons.school_outlined,
-                    size: 16,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      academicClass.course,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Chips informativos adaptáveis: Alunos, Turno, Sala
-              Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                children: [
-                  _InfoChip(
-                    icon: Icons.people_alt_outlined,
-                    label: '${academicClass.studentsCount} alunos',
-                    colorScheme: colorScheme,
-                    isHighlight: true,
-                  ),
-                  _InfoChip(
-                    icon: Icons.schedule_outlined,
-                    label: academicClass.shift,
-                    colorScheme: colorScheme,
-                  ),
-                  _InfoChip(
-                    icon: Icons.meeting_room_outlined,
-                    label: academicClass.room,
-                    colorScheme: colorScheme,
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 12),
-              const Divider(height: 1),
-              const SizedBox(height: 10),
-
-              // Rodapé: Próxima aula + Botões de ação rápida
-              Row(
-                children: [
-                  Expanded(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.notifications_active_outlined,
-                          size: 14,
-                          color: colorScheme.primary,
-                        ),
-                        const SizedBox(width: 4),
-                        Flexible(
-                          child: Text(
-                            academicClass.nextClass,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: colorScheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  if (onAttendanceTap != null)
-                    IconButton.outlined(
-                      onPressed: onAttendanceTap,
-                      tooltip: 'Fazer Chamada',
-                      iconSize: 18,
-                      visualDensity: VisualDensity.compact,
-                      style: IconButton.styleFrom(
-                        side: BorderSide(
-                          color: colorScheme.outlineVariant.withValues(alpha: 0.6),
-                        ),
-                      ),
-                      icon: const Icon(Icons.fact_check_outlined),
-                    ),
-                  if (onGradesTap != null)
-                    IconButton.outlined(
-                      onPressed: onGradesTap,
-                      tooltip: 'Notas da Turma',
-                      iconSize: 18,
-                      visualDensity: VisualDensity.compact,
-                      style: IconButton.styleFrom(
-                        side: BorderSide(
-                          color: colorScheme.outlineVariant.withValues(alpha: 0.6),
-                        ),
-                      ),
-                      icon: const Icon(Icons.grade_outlined),
-                    ),
-                ],
+              _MetaItem(
+                icon: Icons.meeting_room_outlined,
+                label: academicClass.room,
               ),
             ],
           ),
-        ),
+
+          const SizedBox(height: AppSpacing.md),
+          const Divider(),
+          const SizedBox(height: AppSpacing.sm),
+
+          // Rodapé: próxima aula + ações rápidas
+          Row(
+            children: [
+              const Icon(
+                Icons.circle,
+                size: 7,
+                color: AppColors.success,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  academicClass.nextClass,
+                  style: textTheme.labelMedium?.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (onAttendanceTap != null)
+                _QuickAction(
+                  tooltip: 'Fazer Chamada',
+                  icon: Icons.fact_check_outlined,
+                  onPressed: onAttendanceTap!,
+                ),
+              if (onGradesTap != null) ...[
+                const SizedBox(width: AppSpacing.xs),
+                _QuickAction(
+                  tooltip: 'Notas da Turma',
+                  icon: Icons.grade_outlined,
+                  onPressed: onGradesTap!,
+                ),
+              ],
+            ],
+          ),
+        ],
       ),
     );
   }
 }
 
-class _InfoChip extends StatelessWidget {
-  const _InfoChip({
-    required this.icon,
-    required this.label,
-    required this.colorScheme,
-    this.isHighlight = false,
-  });
+class _MetaItem extends StatelessWidget {
+  const _MetaItem({required this.icon, required this.label});
 
   final IconData icon;
   final String label;
-  final ColorScheme colorScheme;
-  final bool isHighlight;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 200),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: isHighlight
-            ? colorScheme.primaryContainer.withValues(alpha: 0.35)
-            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(8),
-      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 13,
-            color: isHighlight
-                ? colorScheme.primary
-                : colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(width: 4),
+          Icon(icon, size: AppSizes.iconXs, color: AppColors.textTertiary),
+          const SizedBox(width: AppSpacing.xs),
           Flexible(
             child: Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isHighlight ? FontWeight.w600 : FontWeight.w500,
-                color: isHighlight
-                    ? colorScheme.primary
-                    : colorScheme.onSurfaceVariant,
-              ),
+              style: Theme.of(context).textTheme.labelMedium,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _QuickAction extends StatelessWidget {
+  const _QuickAction({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onPressed,
+      tooltip: tooltip,
+      icon: Icon(icon, size: AppSizes.iconMd),
+      style: IconButton.styleFrom(
+        backgroundColor: AppColors.surfaceHighest,
+        foregroundColor: AppColors.textPrimary,
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.smAll),
       ),
     );
   }

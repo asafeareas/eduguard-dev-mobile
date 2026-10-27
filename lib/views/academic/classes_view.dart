@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../../models/academic/academic_class.dart';
+import '../../theme/app_theme.dart';
 import '../../viewmodels/academic/classes_view_model.dart';
 import '../../viewmodels/academic/students_view_model.dart';
 import '../../viewmodels/attendance/attendance_view_model.dart';
 import '../../viewmodels/grades/grades_view_model.dart';
+import '../../widgets/app_bottom_sheet.dart';
+import '../../widgets/app_search_field.dart';
 import '../../widgets/class_card.dart';
 import '../../widgets/empty_state_view.dart';
 import '../../widgets/error_state_view.dart';
+import '../../widgets/loading_state_view.dart';
+import '../../widgets/status_badge.dart';
 import '../attendance/attendance_view.dart';
 import '../grades/grades_view.dart';
 import 'students_view.dart';
@@ -43,20 +48,16 @@ class _ClassesViewState extends State<ClassesView> {
     final roomCtrl = TextEditingController(text: 'Sala 101');
     final formKey = GlobalKey<FormState>();
 
-    showModalBottomSheet<void>(
+    showAppBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      useSafeArea: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
       builder: (ctx) {
         return Padding(
           padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            left: AppSpacing.xl,
+            right: AppSpacing.xl,
+            top: AppSpacing.sm,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.xl,
           ),
           child: Form(
             key: formKey,
@@ -65,46 +66,33 @@ class _ClassesViewState extends State<ClassesView> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Nova Turma',
-                        style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.of(ctx).pop(),
-                      ),
-                    ],
+                  const SheetHeader(
+                    title: 'Nova Turma',
+                    subtitle: 'Preencha os dados da turma ou disciplina',
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.xl),
                   TextFormField(
                     controller: nameCtrl,
                     decoration: const InputDecoration(
                       labelText: 'Nome da Turma / Disciplina',
                       hintText: 'Ex: Programação Orientada a Objetos',
-                      prefixIcon: Icon(Icons.book_outlined),
-                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.menu_book_outlined),
                     ),
                     validator: (v) =>
                         (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   TextFormField(
                     controller: courseCtrl,
                     decoration: const InputDecoration(
                       labelText: 'Curso',
                       hintText: 'Ex: Ciência da Computação',
                       prefixIcon: Icon(Icons.school_outlined),
-                      border: OutlineInputBorder(),
                     ),
                     validator: (v) =>
                         (v == null || v.trim().isEmpty) ? 'Informe o curso' : null,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   Row(
                     children: [
                       Expanded(
@@ -113,14 +101,13 @@ class _ClassesViewState extends State<ClassesView> {
                           decoration: const InputDecoration(
                             labelText: 'Código',
                             hintText: 'Ex: CC-202',
-                            border: OutlineInputBorder(),
-                          ),
+                                ),
                           validator: (v) => (v == null || v.trim().isEmpty)
                               ? 'Informe o código'
                               : null,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: TextFormField(
                           controller: studentsCtrl,
@@ -128,8 +115,7 @@ class _ClassesViewState extends State<ClassesView> {
                           decoration: const InputDecoration(
                             labelText: 'Estudantes',
                             hintText: 'Ex: 35',
-                            border: OutlineInputBorder(),
-                          ),
+                                ),
                           validator: (v) {
                             if (v == null || v.trim().isEmpty) {
                               return 'Informe a qtd';
@@ -143,7 +129,7 @@ class _ClassesViewState extends State<ClassesView> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   Row(
                     children: [
                       Expanded(
@@ -152,24 +138,22 @@ class _ClassesViewState extends State<ClassesView> {
                           decoration: const InputDecoration(
                             labelText: 'Turno',
                             hintText: 'Noturno',
-                            border: OutlineInputBorder(),
-                          ),
+                                ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: TextFormField(
                           controller: roomCtrl,
                           decoration: const InputDecoration(
                             labelText: 'Sala / Local',
                             hintText: 'Lab 01',
-                            border: OutlineInputBorder(),
-                          ),
+                                ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: AppSpacing.xxl),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
@@ -198,7 +182,6 @@ class _ClassesViewState extends State<ClassesView> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('Turma "${newClass.name}" cadastrada!'),
-                              behavior: SnackBarBehavior.floating,
                             ),
                           );
                         }
@@ -221,7 +204,6 @@ class _ClassesViewState extends State<ClassesView> {
       listenable: widget.viewModel,
       builder: (context, _) {
         final status = widget.viewModel.status;
-        final colorScheme = Theme.of(context).colorScheme;
 
         return Scaffold(
           appBar: AppBar(
@@ -229,7 +211,7 @@ class _ClassesViewState extends State<ClassesView> {
             actions: [
               // Menu interativo para demonstrar/testar os estados solicitados
               PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert),
+                icon: const Icon(Icons.more_horiz_rounded),
                 tooltip: 'Opções de Demonstração',
                 onSelected: (value) {
                   switch (value) {
@@ -249,7 +231,7 @@ class _ClassesViewState extends State<ClassesView> {
                   const PopupMenuItem(
                     value: 'restore',
                     child: ListTile(
-                      leading: Icon(Icons.restore),
+                      leading: Icon(Icons.restore_rounded),
                       title: Text('Restaurar Turmas'),
                       contentPadding: EdgeInsets.zero,
                     ),
@@ -265,27 +247,28 @@ class _ClassesViewState extends State<ClassesView> {
                   const PopupMenuItem(
                     value: 'error',
                     child: ListTile(
-                      leading: Icon(Icons.error_outline),
+                      leading: Icon(Icons.error_outline_rounded),
                       title: Text('Simular Erro de Carga'),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
                 ],
               ),
+              const SizedBox(width: AppSpacing.xs),
             ],
           ),
           floatingActionButton: status == ClassesStatus.success ||
                   status == ClassesStatus.empty
               ? FloatingActionButton.extended(
                   onPressed: () => _showAddClassDialog(context),
-                  icon: const Icon(Icons.add),
+                  icon: const Icon(Icons.add_rounded),
                   label: const Text('Nova Turma'),
                 )
               : null,
           body: SafeArea(
             child: RefreshIndicator(
               onRefresh: () => widget.viewModel.loadClasses(),
-              child: _buildBody(context, status, colorScheme),
+              child: _buildBody(context, status),
             ),
           ),
         );
@@ -296,20 +279,10 @@ class _ClassesViewState extends State<ClassesView> {
   Widget _buildBody(
     BuildContext context,
     ClassesStatus status,
-    ColorScheme colorScheme,
   ) {
     // 1. Estado de Carregamento
     if (status == ClassesStatus.loading) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Carregando turmas...'),
-          ],
-        ),
-      );
+      return const LoadingStateView(message: 'Carregando turmas...');
     }
 
     // 2. Estado de Erro
@@ -341,12 +314,11 @@ class _ClassesViewState extends State<ClassesView> {
 
     // 4. Estado de Sucesso com lista
     final filtered = widget.viewModel.filteredClasses;
-    final theme = Theme.of(context);
 
     return LayoutBuilder(
       builder: (context, constraints) {
         // Responsividade para diferentes larguras de tela
-        final horizontalPadding = constraints.maxWidth > 600 ? 32.0 : 16.0;
+        final horizontalPadding = AppSpacing.pagePadding(constraints.maxWidth);
 
         return CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -356,68 +328,39 @@ class _ClassesViewState extends State<ClassesView> {
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
                   horizontalPadding,
-                  16,
+                  AppSpacing.sm,
                   horizontalPadding,
-                  8,
+                  AppSpacing.lg,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Campo de Busca
-                    TextField(
+                    AppSearchField(
                       controller: _searchController,
-                      onChanged: (val) => widget.viewModel.updateSearchQuery(val),
-                      decoration: InputDecoration(
-                        hintText: 'Buscar por turma, curso ou código...',
-                        prefixIcon: const Icon(Icons.search),
-                        suffixIcon: _searchController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  widget.viewModel.clearSearch();
-                                },
-                              )
-                            : null,
-                        filled: true,
-                        fillColor: colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.4),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                      ),
+                      hintText: 'Buscar por turma, curso ou código...',
+                      onChanged: widget.viewModel.updateSearchQuery,
+                      onClear: widget.viewModel.clearSearch,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
 
                     // Resumo de contagem adaptável a qualquer largura
                     Wrap(
-                      alignment: WrapAlignment.spaceBetween,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 8,
-                      runSpacing: 4,
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.sm,
                       children: [
-                        Text(
-                          '${widget.viewModel.totalClassesCount} turmas encontradas',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        StatusBadge(
+                          label:
+                              '${widget.viewModel.totalClassesCount} turmas encontradas',
+                          icon: Icons.school_outlined,
                         ),
-                        Text(
-                          '${widget.viewModel.totalStudentsCount} estudantes no total',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        StatusBadge(
+                          label:
+                              '${widget.viewModel.totalStudentsCount} estudantes no total',
+                          icon: Icons.people_alt_outlined,
+                          tone: AppTone.accent,
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
                   ],
                 ),
               ),
@@ -433,6 +376,7 @@ class _ClassesViewState extends State<ClassesView> {
                   message:
                       'Nenhuma turma corresponde aos termos informados: "${widget.viewModel.searchQuery}".',
                   actionLabel: 'Limpar busca',
+                  actionIcon: Icons.close_rounded,
                   onActionPressed: () {
                     _searchController.clear();
                     widget.viewModel.clearSearch();
@@ -444,9 +388,9 @@ class _ClassesViewState extends State<ClassesView> {
               SliverPadding(
                 padding: EdgeInsets.fromLTRB(
                   horizontalPadding,
-                  4,
+                  0,
                   horizontalPadding,
-                  80, // Espaço extra para o FloatingActionButton
+                  96, // Espaço extra para o FloatingActionButton
                 ),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(

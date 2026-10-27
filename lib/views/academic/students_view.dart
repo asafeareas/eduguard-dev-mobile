@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../models/academic/student.dart';
+import '../../theme/app_theme.dart';
 import '../../viewmodels/academic/students_view_model.dart';
 import '../../viewmodels/attendance/attendance_view_model.dart';
+import '../../widgets/app_avatar.dart';
+import '../../widgets/app_card.dart';
+import '../../widgets/empty_state_view.dart';
+import '../../widgets/page_header.dart';
 import '../attendance/attendance_view.dart';
 import 'student_detail_view.dart';
 
@@ -27,7 +32,6 @@ class StudentsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final students = viewModel.students;
-    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -38,6 +42,7 @@ class StudentsView extends StatelessWidget {
             tooltip: 'Fazer Chamada',
             onPressed: () => _openAttendance(context, students),
           ),
+          const SizedBox(width: AppSpacing.xs),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -48,31 +53,28 @@ class StudentsView extends StatelessWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  viewModel.academicClass.name,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${viewModel.academicClass.code} • ${students.length} estudantes',
-                ),
-              ],
-            ),
+          PageHeader(
+            title: viewModel.academicClass.name,
+            subtitle:
+                '${viewModel.academicClass.code} • ${students.length} estudantes',
           ),
           Expanded(
             child: students.isEmpty
-                ? const Center(child: Text('Nenhum estudante nesta turma.'))
+                ? const EmptyStateView(
+                    icon: Icons.person_off_outlined,
+                    title: 'Nenhum estudante',
+                    message: 'Nenhum estudante nesta turma.',
+                  )
                 : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.page,
+                      0,
+                      AppSpacing.page,
+                      96,
+                    ),
                     itemCount: students.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(height: AppSpacing.sm),
                     itemBuilder: (context, index) => _StudentTile(
                       student: students[index],
                       onTap: () => Navigator.of(context).push(
@@ -100,18 +102,41 @@ class _StudentTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Card(
-      child: ListTile(
-        onTap: onTap,
-        leading: CircleAvatar(
-          backgroundColor: colorScheme.primaryContainer,
-          foregroundColor: colorScheme.onPrimaryContainer,
-          child: Text(student.initials),
-        ),
-        title: Text(student.name),
-        subtitle: Text('Matrícula ${student.registration}'),
-        trailing: const Icon(Icons.chevron_right),
+    final textTheme = Theme.of(context).textTheme;
+
+    return AppCard(
+      onTap: onTap,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md + 2,
+        vertical: AppSpacing.md,
+      ),
+      child: Row(
+        children: [
+          AppAvatar(initials: student.initials),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  student.name,
+                  style: textTheme.titleSmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  'Matrícula ${student.registration}',
+                  style: textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.chevron_right_rounded,
+            color: AppColors.textTertiary,
+          ),
+        ],
       ),
     );
   }

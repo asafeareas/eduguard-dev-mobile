@@ -3,9 +3,20 @@ import 'package:flutter/services.dart';
 
 import '../../models/academic/student.dart';
 import '../../models/grades/assessment.dart';
+import '../../theme/app_theme.dart';
 import '../../viewmodels/grades/grades_view_model.dart';
+import '../../widgets/app_avatar.dart';
+import '../../widgets/app_bottom_sheet.dart';
+import '../../widgets/app_card.dart';
+import '../../widgets/app_search_field.dart';
+import '../../widgets/app_snack_bar.dart';
+import '../../widgets/bottom_action_bar.dart';
 import '../../widgets/empty_state_view.dart';
 import '../../widgets/error_state_view.dart';
+import '../../widgets/loading_state_view.dart';
+import '../../widgets/metric_tile.dart';
+import '../../widgets/page_header.dart';
+import '../../widgets/status_badge.dart';
 import 'grade_results_view.dart';
 
 /// Tela de lançamento e edição das notas de uma turma por avaliação.
@@ -48,6 +59,7 @@ class _GradesViewState extends State<GradesView> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
             child: const Text('Descartar'),
           ),
         ],
@@ -64,15 +76,12 @@ class _GradesViewState extends State<GradesView> {
     }
   }
 
-  void _showFeedback(BuildContext context, String message, {Color? color}) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: color,
-      ),
-    );
+  void _showFeedback(
+    BuildContext context,
+    String message, {
+    AppTone tone = AppTone.neutral,
+  }) {
+    showAppSnackBar(context, message, tone: tone);
   }
 
   Future<void> _save(BuildContext context) async {
@@ -81,7 +90,7 @@ class _GradesViewState extends State<GradesView> {
       _showFeedback(
         context,
         'Corrija ${vm.errorCount} nota(s) inválida(s) antes de salvar.',
-        color: Theme.of(context).colorScheme.error,
+        tone: AppTone.danger,
       );
       return;
     }
@@ -93,13 +102,13 @@ class _GradesViewState extends State<GradesView> {
       _showFeedback(
         context,
         'Notas de "${vm.selectedAssessment?.title}" salvas com sucesso! (${vm.launchedCount} de ${vm.totalStudentsCount} lançadas)',
-        color: Colors.green.shade800,
+        tone: AppTone.success,
       );
     } else {
       _showFeedback(
         context,
         vm.errorMessage ?? 'Não foi possível salvar as notas.',
-        color: Theme.of(context).colorScheme.error,
+        tone: AppTone.danger,
       );
     }
   }
@@ -132,22 +141,18 @@ class _GradesViewState extends State<GradesView> {
       return null;
     }
 
-    showModalBottomSheet<void>(
+    showAppBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      useSafeArea: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
             return Padding(
               padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+                left: AppSpacing.xl,
+                right: AppSpacing.xl,
+                top: AppSpacing.sm,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.xl,
               ),
               child: Form(
                 key: formKey,
@@ -156,40 +161,27 @@ class _GradesViewState extends State<GradesView> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Nova Avaliação',
-                            style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: () => Navigator.of(ctx).pop(),
-                          ),
-                        ],
+                      const SheetHeader(
+                        title: 'Nova Avaliação',
+                        subtitle: 'Defina o tipo, a escala e o peso',
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.xl),
                       TextFormField(
                         controller: titleCtrl,
                         decoration: const InputDecoration(
                           labelText: 'Título da avaliação',
                           hintText: 'Ex: Prova 1, Lista de Exercícios...',
                           prefixIcon: Icon(Icons.assignment_outlined),
-                          border: OutlineInputBorder(),
                         ),
                         validator: (v) => (v == null || v.trim().isEmpty)
                             ? 'Informe o título'
                             : null,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
                       DropdownButtonFormField<AssessmentType>(
                         initialValue: type,
                         decoration: const InputDecoration(
                           labelText: 'Tipo',
-                          border: OutlineInputBorder(),
                         ),
                         items: AssessmentType.values
                             .map(
@@ -201,7 +193,7 @@ class _GradesViewState extends State<GradesView> {
                             .toList(),
                         onChanged: (t) => type = t ?? type,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -214,12 +206,11 @@ class _GradesViewState extends State<GradesView> {
                               decoration: const InputDecoration(
                                 labelText: 'Nota máxima',
                                 hintText: 'Ex: 10',
-                                border: OutlineInputBorder(),
-                              ),
+                                    ),
                               validator: (v) => validatePositive(v, max: 100),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: AppSpacing.md),
                           Expanded(
                             child: TextFormField(
                               controller: weightCtrl,
@@ -229,14 +220,13 @@ class _GradesViewState extends State<GradesView> {
                               decoration: const InputDecoration(
                                 labelText: 'Peso',
                                 hintText: 'Ex: 2',
-                                border: OutlineInputBorder(),
-                              ),
+                                    ),
                               validator: (v) => validatePositive(v, max: 10),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
                       OutlinedButton.icon(
                         onPressed: () async {
                           final picked = await showDatePicker(
@@ -252,12 +242,15 @@ class _GradesViewState extends State<GradesView> {
                             setSheetState(() => date = picked);
                           }
                         },
-                        icon: const Icon(Icons.calendar_today_outlined, size: 18),
+                        icon: const Icon(
+                          Icons.calendar_today_rounded,
+                          size: AppSizes.iconSm,
+                        ),
                         label: Text(
                           'Data: ${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}',
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: AppSpacing.xxl),
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton(
@@ -283,6 +276,9 @@ class _GradesViewState extends State<GradesView> {
                                 created
                                     ? 'Avaliação "$title" cadastrada!'
                                     : 'Não foi possível cadastrar a avaliação.',
+                                tone: created
+                                    ? AppTone.success
+                                    : AppTone.danger,
                               );
                             }
                           },
@@ -326,22 +322,24 @@ class _GradesViewState extends State<GradesView> {
             }
           },
           child: Scaffold(
+            extendBody: true,
             appBar: AppBar(
               title: const Text('Lançamento de Notas'),
               actions: [
                 if (status == GradesStatus.success)
                   IconButton(
-                    icon: const Icon(Icons.bar_chart_outlined),
+                    icon: const Icon(Icons.bar_chart_rounded),
                     tooltip: 'Consultar Resultados',
                     onPressed: () => _openResults(context),
                   ),
                 if (status == GradesStatus.success ||
                     status == GradesStatus.empty)
                   IconButton(
-                    icon: const Icon(Icons.add_task_outlined),
+                    icon: const Icon(Icons.add_rounded),
                     tooltip: 'Nova Avaliação',
                     onPressed: () => _addAssessment(context),
                   ),
+                const SizedBox(width: AppSpacing.xs),
               ],
             ),
             bottomNavigationBar: status == GradesStatus.success
@@ -357,7 +355,10 @@ class _GradesViewState extends State<GradesView> {
                         : null,
                   )
                 : null,
-            body: _buildBody(context, vm, status),
+            // Builder garante o padding inferior da barra translúcida.
+            body: Builder(
+              builder: (context) => _buildBody(context, vm, status),
+            ),
           ),
         );
       },
@@ -371,16 +372,7 @@ class _GradesViewState extends State<GradesView> {
   ) {
     // 1. Estado de Carregamento
     if (status == GradesStatus.loading || status == GradesStatus.initial) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Carregando avaliações...'),
-          ],
-        ),
-      );
+      return const LoadingStateView(message: 'Carregando avaliações...');
     }
 
     // 2. Estado de Erro
@@ -407,8 +399,6 @@ class _GradesViewState extends State<GradesView> {
     }
 
     // 4. Estado de Sucesso
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final academicClass = vm.academicClass;
     final assessment = vm.selectedAssessment!;
     final filteredStudents = vm.filteredStudents;
@@ -417,28 +407,15 @@ class _GradesViewState extends State<GradesView> {
       slivers: [
         // Cabeçalho da Turma
         SliverToBoxAdapter(
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  academicClass.name,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${academicClass.code} • ${academicClass.semester} • ${vm.totalStudentsCount} estudantes',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
+          child: PageHeader(
+            title: academicClass.name,
+            subtitle:
+                '${academicClass.code} • ${academicClass.semester} • ${vm.totalStudentsCount} estudantes',
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.page,
+              AppSpacing.sm,
+              AppSpacing.page,
+              AppSpacing.md,
             ),
           ),
         ),
@@ -446,18 +423,20 @@ class _GradesViewState extends State<GradesView> {
         // Seleção da Avaliação
         SliverToBoxAdapter(
           child: SizedBox(
-            height: 56,
+            height: 48,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
               itemCount: vm.assessments.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
               itemBuilder: (context, index) {
                 final item = vm.assessments[index];
-                return ChoiceChip(
-                  label: Text(item.title),
-                  selected: item.id == assessment.id,
-                  onSelected: (_) => _selectAssessment(context, item.id),
+                return Center(
+                  child: ChoiceChip(
+                    label: Text(item.title),
+                    selected: item.id == assessment.id,
+                    onSelected: (_) => _selectAssessment(context, item.id),
+                  ),
                 );
               },
             ),
@@ -467,7 +446,12 @@ class _GradesViewState extends State<GradesView> {
         // Resumo da Avaliação
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.page,
+              AppSpacing.md,
+              AppSpacing.page,
+              0,
+            ),
             child: _AssessmentSummaryCard(
               assessment: assessment,
               launchedCount: vm.launchedCount,
@@ -481,34 +465,12 @@ class _GradesViewState extends State<GradesView> {
         // Campo de Pesquisa de Estudantes
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
-            child: TextField(
+            padding: const EdgeInsets.all(AppSpacing.page),
+            child: AppSearchField(
               controller: _searchController,
+              hintText: 'Filtrar estudante por nome ou matrícula...',
               onChanged: vm.updateSearchFilter,
-              decoration: InputDecoration(
-                hintText: 'Filtrar estudante por nome ou matrícula...',
-                prefixIcon: const Icon(Icons.search, size: 20),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () {
-                          _searchController.clear();
-                          vm.clearSearch();
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor:
-                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
+              onClear: vm.clearSearch,
             ),
           ),
         ),
@@ -517,13 +479,20 @@ class _GradesViewState extends State<GradesView> {
         if (filteredStudents.isEmpty)
           const SliverFillRemaining(
             hasScrollBody: false,
-            child: Center(
-              child: Text('Nenhum estudante corresponde ao filtro.'),
+            child: EmptyStateView(
+              icon: Icons.search_off_rounded,
+              title: 'Nenhum resultado',
+              message: 'Nenhum estudante corresponde ao filtro.',
             ),
           )
         else
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            padding: EdgeInsets.fromLTRB(
+              AppSpacing.page,
+              0,
+              AppSpacing.page,
+              MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
+            ),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
@@ -565,127 +534,75 @@ class _AssessmentSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final statusColor =
-        hasUnsavedChanges ? Colors.orange.shade800 : Colors.green.shade700;
+    final textTheme = Theme.of(context).textTheme;
 
-    return Card(
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${assessment.type.label} • ${assessment.formattedDate}',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${assessment.type.label} • ${assessment.formattedDate}',
+                  style: textTheme.labelMedium,
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: statusColor.withValues(alpha: 0.3)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        hasUnsavedChanges ? Icons.edit_note : Icons.check_circle,
-                        size: 14,
-                        color: statusColor,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        hasUnsavedChanges ? 'Pendente' : 'Salva',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: statusColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _Metric(
+              ),
+              StatusBadge(
+                label: hasUnsavedChanges ? 'Pendente' : 'Salva',
+                icon: hasUnsavedChanges
+                    ? Icons.edit_note_rounded
+                    : Icons.check_circle_rounded,
+                tone: hasUnsavedChanges ? AppTone.warning : AppTone.success,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            children: [
+              Expanded(
+                child: MetricTile(
                   label: 'Escala',
                   value: assessment.scaleLabel,
                 ),
-                _Metric(
+              ),
+              Expanded(
+                child: MetricTile(
                   label: 'Peso',
                   value: Assessment.formatScore(assessment.weight),
                 ),
-                _Metric(
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          const Divider(),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: MetricTile(
                   label: 'Lançadas',
                   value: '$launchedCount',
-                  color: Colors.green.shade700,
+                  tone: AppTone.success,
                 ),
-                _Metric(
+              ),
+              Expanded(
+                child: MetricTile(
                   label: 'Pendentes',
                   value: '$pendingCount',
-                  color: Colors.orange.shade800,
+                  tone: AppTone.warning,
                 ),
-                _Metric(
+              ),
+              Expanded(
+                child: MetricTile(
                   label: 'Média',
-                  value: average == null ? '—' : Assessment.formatScore(average!),
-                  color: colorScheme.primary,
+                  value: average == null
+                      ? '—'
+                      : Assessment.formatScore(average!),
+                  tone: AppTone.accent,
                 ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Metric extends StatelessWidget {
-  const _Metric({required this.label, required this.value, this.color});
-
-  final String label;
-  final String value;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Expanded(
-      child: Column(
-        children: [
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -711,81 +628,74 @@ class _StudentGradeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final hasError = errorText != null;
 
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(
-          color: hasError
-              ? colorScheme.error.withValues(alpha: 0.6)
-              : colorScheme.outlineVariant.withValues(alpha: 0.5),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: CircleAvatar(
-                backgroundColor: colorScheme.primaryContainer,
-                foregroundColor: colorScheme.onPrimaryContainer,
-                child: Text(student.initials),
-              ),
+    return AppCard(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      borderColor: hasError
+          ? AppColors.danger.withValues(alpha: 0.5)
+          : AppColors.border,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
+            child: AppAvatar(
+              initials: student.initials,
+              size: AppSizes.avatarSm + 4,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      student.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    Text(
-                      'Matrícula ${student.registration}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            SizedBox(
-              width: 110,
-              child: TextFormField(
-                initialValue: initialValue,
-                onChanged: onChanged,
-                textAlign: TextAlign.center,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-                  LengthLimitingTextInputFormatter(6),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    student.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.titleSmall,
+                  ),
+                  Text(
+                    'Matrícula ${student.registration}',
+                    style: textTheme.bodySmall,
+                  ),
                 ],
-                decoration: InputDecoration(
-                  isDense: true,
-                  hintText: '—',
-                  suffixText: '/${Assessment.formatScore(maxScore)}',
-                  errorText: errorText,
-                  errorMaxLines: 2,
-                  border: const OutlineInputBorder(),
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          SizedBox(
+            width: 108,
+            child: TextFormField(
+              initialValue: initialValue,
+              onChanged: onChanged,
+              textAlign: TextAlign.center,
+              style: AppTypography.numeric(textTheme.titleSmall),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                LengthLimitingTextInputFormatter(6),
+              ],
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: '—',
+                suffixText: '/${Assessment.formatScore(maxScore)}',
+                errorText: errorText,
+                errorMaxLines: 2,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.md,
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -812,70 +722,36 @@ class _SaveBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
     final String statusText;
-    final Color statusColor;
+    final AppTone statusTone;
     if (errorCount > 0) {
       statusText = '$errorCount nota(s) inválida(s)';
-      statusColor = colorScheme.error;
+      statusTone = AppTone.danger;
     } else if (hasUnsavedChanges) {
       statusText = 'Alterações pendentes de envio';
-      statusColor = colorScheme.onSurfaceVariant;
+      statusTone = AppTone.warning;
     } else {
       statusText = 'Notas salvas no sistema';
-      statusColor = Colors.green.shade700;
+      statusTone = AppTone.success;
     }
 
-    return SafeArea(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: theme.scaffoldBackgroundColor,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              offset: const Offset(0, -3),
-              blurRadius: 8,
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '$launchedCount de $totalCount notas lançadas',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    statusText,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: statusColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            FilledButton.icon(
-              onPressed: isSaving ? null : onSave,
-              icon: isSaving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.save_outlined),
-              label: Text(isExistingLaunch ? 'Atualizar Notas' : 'Salvar Notas'),
-            ),
-          ],
-        ),
+    return BottomActionBar(
+      title: '$launchedCount de $totalCount notas lançadas',
+      status: statusText,
+      statusTone: statusTone,
+      action: FilledButton.icon(
+        onPressed: isSaving ? null : onSave,
+        icon: isSaving
+            ? const SizedBox(
+                width: AppSizes.iconSm,
+                height: AppSizes.iconSm,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.textSecondary,
+                ),
+              )
+            : const Icon(Icons.check_rounded, size: AppSizes.iconMd),
+        label: Text(isExistingLaunch ? 'Atualizar Notas' : 'Salvar Notas'),
       ),
     );
   }

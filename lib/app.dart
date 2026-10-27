@@ -12,9 +12,8 @@ class EduGuardApp extends StatelessWidget {
     return MaterialApp(
       title: 'EduGuard',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
+      theme: AppTheme.dark,
+      themeMode: ThemeMode.dark,
       home: HomeView(viewModel: HomeViewModel()),
     );
   }

@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../models/attendance/attendance_session.dart';
+import '../../theme/app_theme.dart';
 import '../../viewmodels/attendance/attendance_view_model.dart';
+import '../../widgets/app_card.dart';
+import '../../widgets/app_snack_bar.dart';
+import '../../widgets/empty_state_view.dart';
+import '../../widgets/page_header.dart';
+import '../../widgets/status_badge.dart';
 
 /// Tela para consulta do histórico de chamadas já registradas para a turma.
 class AttendanceHistoryView extends StatelessWidget {
@@ -11,8 +17,6 @@ class AttendanceHistoryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final history = viewModel.history;
 
     return Scaffold(
@@ -22,65 +26,29 @@ class AttendanceHistoryView extends StatelessWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-            width: double.infinity,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  viewModel.academicClass.name,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${viewModel.academicClass.code} • ${history.length} chamada(s) registrada(s)',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
+          PageHeader(
+            title: viewModel.academicClass.name,
+            subtitle:
+                '${viewModel.academicClass.code} • ${history.length} chamada(s) registrada(s)',
           ),
           Expanded(
             child: history.isEmpty
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.event_busy_outlined,
-                            size: 64,
-                            color: colorScheme.outline,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Nenhuma chamada registrada',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Realize e salve a primeira chamada para que ela apareça aqui.',
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                ? const EmptyStateView(
+                    icon: Icons.event_busy_outlined,
+                    title: 'Nenhuma chamada registrada',
+                    message:
+                        'Realize e salve a primeira chamada para que ela apareça aqui.',
                   )
                 : ListView.separated(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.page,
+                      0,
+                      AppSpacing.page,
+                      AppSpacing.xxl,
+                    ),
                     itemCount: history.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(height: AppSpacing.sm),
                     itemBuilder: (context, index) {
                       final session = history[index];
                       return _HistoryCard(
@@ -90,13 +58,9 @@ class AttendanceHistoryView extends StatelessWidget {
                         onTap: () {
                           viewModel.loadForDate(session.date);
                           Navigator.of(context).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Chamada do dia ${session.formattedDate} carregada.',
-                              ),
-                              behavior: SnackBarBehavior.floating,
-                            ),
+                          showAppSnackBar(
+                            context,
+                            'Chamada do dia ${session.formattedDate} carregada.',
                           );
                         },
                       );
@@ -122,138 +86,80 @@ class _HistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final rate = session.attendanceRate;
 
-    Color badgeColor;
+    final AppTone rateTone;
     if (rate >= 80) {
-      badgeColor = Colors.green.shade700;
+      rateTone = AppTone.success;
     } else if (rate >= 60) {
-      badgeColor = Colors.orange.shade800;
+      rateTone = AppTone.warning;
     } else {
-      badgeColor = Colors.red.shade700;
+      rateTone = AppTone.danger;
     }
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(
-          color: isSelected
-              ? colorScheme.primary
-              : colorScheme.outlineVariant.withValues(alpha: 0.5),
-          width: isSelected ? 2 : 1,
-        ),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return AppCard(
+      onTap: onTap,
+      borderColor: isSelected ? AppColors.accent : AppColors.border,
+      borderWidth: isSelected ? 1.5 : 1,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.calendar_today,
-                        size: 16,
-                        color: colorScheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        session.formattedDate,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      if (isSelected) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: colorScheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            'Em edição',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: colorScheme.primary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: badgeColor.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '${rate.toStringAsFixed(0)}% presença',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: badgeColor,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
+              Text(
+                session.formattedDate,
+                style: AppTypography.numeric(textTheme.titleMedium),
               ),
-              if (session.topic != null && session.topic!.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(
-                  session.topic!,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
+              if (isSelected) ...[
+                const SizedBox(width: AppSpacing.sm),
+                const StatusBadge(label: 'Em edição', tone: AppTone.accent),
               ],
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  _SummaryPill(
-                    icon: Icons.check_circle_outline,
-                    color: Colors.green.shade700,
-                    text: '${session.presentCount} presentes',
-                  ),
-                  const SizedBox(width: 12),
-                  _SummaryPill(
-                    icon: Icons.highlight_off,
-                    color: Colors.red.shade700,
-                    text: '${session.absentCount} faltas',
-                  ),
-                  const Spacer(),
-                  Text(
-                    'Toque para abrir',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: colorScheme.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.chevron_right,
-                    size: 16,
-                    color: colorScheme.primary,
-                  ),
-                ],
+              const Spacer(),
+              StatusBadge(
+                label: '${rate.toStringAsFixed(0)}% presença',
+                tone: rateTone,
               ),
             ],
           ),
-        ),
+          if (session.topic != null && session.topic!.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              session.topic!,
+              style: textTheme.bodySmall,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              _SummaryPill(
+                icon: Icons.check_circle_outline_rounded,
+                tone: AppTone.success,
+                text: '${session.presentCount} presentes',
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              _SummaryPill(
+                icon: Icons.highlight_off_rounded,
+                tone: AppTone.danger,
+                text: '${session.absentCount} faltas',
+              ),
+              const Spacer(),
+              Text(
+                'Abrir',
+                style: textTheme.labelMedium?.copyWith(
+                  color: AppColors.accent,
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: AppSizes.iconMd,
+                color: AppColors.accent,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -262,12 +168,12 @@ class _HistoryCard extends StatelessWidget {
 class _SummaryPill extends StatelessWidget {
   const _SummaryPill({
     required this.icon,
-    required this.color,
+    required this.tone,
     required this.text,
   });
 
   final IconData icon;
-  final Color color;
+  final AppTone tone;
   final String text;
 
   @override
@@ -275,15 +181,11 @@ class _SummaryPill extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: color),
-        const SizedBox(width: 4),
+        Icon(icon, size: AppSizes.iconXs, color: tone.color),
+        const SizedBox(width: AppSpacing.xs),
         Text(
           text,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: color,
-          ),
+          style: AppTypography.numeric(Theme.of(context).textTheme.labelMedium),
         ),
       ],
     );

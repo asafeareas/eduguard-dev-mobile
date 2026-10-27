@@ -10,7 +10,7 @@ import 'package:eduguard/widgets/error_state_view.dart';
 
 Widget createTestableWidget({required Widget child}) {
   return MaterialApp(
-    theme: AppTheme.light,
+    theme: AppTheme.dark,
     home: child,
   );
 }

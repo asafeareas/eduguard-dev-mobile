@@ -1,8 +1,18 @@
 import 'package:flutter/material.dart';
 
-import '../../models/academic/academic_class.dart';
 import '../../models/academic/student.dart';
+import '../../theme/app_theme.dart';
 import '../../viewmodels/attendance/attendance_view_model.dart';
+import '../../widgets/app_avatar.dart';
+import '../../widgets/app_card.dart';
+import '../../widgets/app_search_field.dart';
+import '../../widgets/app_snack_bar.dart';
+import '../../widgets/bottom_action_bar.dart';
+import '../../widgets/empty_state_view.dart';
+import '../../widgets/loading_state_view.dart';
+import '../../widgets/metric_tile.dart';
+import '../../widgets/page_header.dart';
+import '../../widgets/status_badge.dart';
 import 'attendance_history_view.dart';
 
 /// Tela principal para realização, alteração e consulta da chamada de uma turma.
@@ -57,7 +67,6 @@ class _AttendanceViewState extends State<AttendanceView> {
             autofocus: true,
             decoration: const InputDecoration(
               hintText: 'Ex: Introdução a Widgets, Revisão P1...',
-              border: OutlineInputBorder(),
             ),
           ),
           actions: [
@@ -96,7 +105,6 @@ class _AttendanceViewState extends State<AttendanceView> {
             maxLines: 3,
             decoration: const InputDecoration(
               hintText: 'Ex: Atestado médico, saída antecipada...',
-              border: OutlineInputBorder(),
             ),
           ),
           actions: [
@@ -106,6 +114,9 @@ class _AttendanceViewState extends State<AttendanceView> {
                   widget.viewModel.setStudentObservation(student.id, null);
                   Navigator.of(ctx).pop();
                 },
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.danger,
+                ),
                 child: const Text('Remover'),
               ),
             TextButton(
@@ -142,12 +153,11 @@ class _AttendanceViewState extends State<AttendanceView> {
       listenable: widget.viewModel,
       builder: (context, _) {
         final vm = widget.viewModel;
-        final theme = Theme.of(context);
-        final colorScheme = theme.colorScheme;
         final academicClass = vm.academicClass;
         final filteredStudents = vm.filteredStudents;
 
         return Scaffold(
+          extendBody: true,
           appBar: AppBar(
             title: const Text('Registro de Frequência'),
             actions: [
@@ -160,303 +170,196 @@ class _AttendanceViewState extends State<AttendanceView> {
                 tooltip: 'Histórico de Chamadas',
                 onPressed: () => _openHistory(context),
               ),
+              const SizedBox(width: AppSpacing.xs),
             ],
           ),
-          bottomNavigationBar: SafeArea(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: theme.scaffoldBackgroundColor,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    offset: const Offset(0, -3),
-                    blurRadius: 8,
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${vm.presentCount} presentes de ${vm.totalStudentsCount}',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          vm.isSaved
-                              ? 'Chamada salva no sistema'
-                              : 'Alterações pendentes de envio',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: vm.isSaved
-                                ? Colors.green.shade700
-                                : colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  FilledButton.icon(
-                    onPressed: () async {
-                      await vm.saveAttendance();
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Chamada do dia ${vm.formattedSelectedDate} salva com sucesso! (${vm.presentCount} presentes, ${vm.absentCount} faltas)',
-                            ),
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: Colors.green.shade800,
-                          ),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.save_outlined),
-                    label: Text(
-                      vm.isExistingSession ? 'Atualizar Chamada' : 'Salvar Chamada',
-                    ),
-                  ),
-                ],
+          bottomNavigationBar: BottomActionBar(
+            title: '${vm.presentCount} presentes de ${vm.totalStudentsCount}',
+            status: vm.isSaved
+                ? 'Chamada salva no sistema'
+                : 'Alterações pendentes de envio',
+            statusTone: vm.isSaved ? AppTone.success : AppTone.warning,
+            action: FilledButton.icon(
+              onPressed: () async {
+                await vm.saveAttendance();
+                if (context.mounted) {
+                  showAppSnackBar(
+                    context,
+                    'Chamada do dia ${vm.formattedSelectedDate} salva com sucesso! (${vm.presentCount} presentes, ${vm.absentCount} faltas)',
+                    tone: AppTone.success,
+                  );
+                }
+              },
+              icon: const Icon(Icons.check_rounded, size: AppSizes.iconMd),
+              label: Text(
+                vm.isExistingSession ? 'Atualizar Chamada' : 'Salvar Chamada',
               ),
             ),
           ),
           body: vm.isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : CustomScrollView(
-                  slivers: [
-                    // Cabeçalho da Turma
-                    SliverToBoxAdapter(
-                      child: Container(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-                        color: colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.35),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        academicClass.name,
-                                        style: theme.textTheme.titleMedium?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        '${academicClass.code} • ${academicClass.shift} • ${academicClass.room}',
-                                        style: theme.textTheme.bodySmall?.copyWith(
-                                          color: colorScheme.onSurfaceVariant,
-                                        ),
-                                      ),
-                                    ],
+              ? const LoadingStateView()
+              : Builder(
+                  // Builder garante o padding inferior da barra translúcida.
+                  builder: (context) => CustomScrollView(
+                    slivers: [
+                      // Cabeçalho da Turma
+                      SliverToBoxAdapter(
+                        child: PageHeader(
+                          title: academicClass.name,
+                          subtitle:
+                              '${academicClass.code} • ${academicClass.shift} • ${academicClass.room}',
+                          trailing: StatusBadge(
+                            label: vm.isSaved ? 'Salva' : 'Pendente',
+                            icon: vm.isSaved
+                                ? Icons.check_circle_rounded
+                                : Icons.edit_note_rounded,
+                            tone: vm.isSaved
+                                ? AppTone.success
+                                : AppTone.warning,
+                          ),
+                        ),
+                      ),
+
+                      // Barra de Navegação de Data
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.page,
+                            0,
+                            AppSpacing.page,
+                            AppSpacing.md,
+                          ),
+                          child: _DateNavigator(
+                            selectedDate: vm.selectedDate,
+                            formattedDate: vm.formattedSelectedDate,
+                            onPrev: () => vm.loadForDate(
+                              vm.selectedDate.subtract(const Duration(days: 1)),
+                            ),
+                            onNext: () => vm.loadForDate(
+                              vm.selectedDate.add(const Duration(days: 1)),
+                            ),
+                            onTapDate: () => _selectDate(context),
+                            onToday: () => vm.loadForDate(DateTime.now()),
+                          ),
+                        ),
+                      ),
+
+                      // Cartão de Resumo e Métricas
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.page,
+                          ),
+                          child: _AttendanceSummaryCard(
+                            presentCount: vm.presentCount,
+                            absentCount: vm.absentCount,
+                            totalCount: vm.totalStudentsCount,
+                            attendanceRate: vm.attendanceRate,
+                            topic: vm.topic,
+                            onEditTopic: () => _showTopicDialog(context),
+                          ),
+                        ),
+                      ),
+
+                      // Ações Rápidas (Todos Presentes, Todos Ausentes)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.page,
+                            AppSpacing.md,
+                            AppSpacing.page,
+                            AppSpacing.md,
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => vm.markAll(true),
+                                  icon: const Icon(
+                                    Icons.done_all_rounded,
+                                    size: AppSizes.iconSm,
+                                    color: AppColors.success,
                                   ),
-                                ),
-                                _SaveStatusChip(isSaved: vm.isSaved),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // Barra de Navegação de Data
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                        child: _DateNavigator(
-                          selectedDate: vm.selectedDate,
-                          formattedDate: vm.formattedSelectedDate,
-                          onPrev: () => vm.loadForDate(
-                            vm.selectedDate.subtract(const Duration(days: 1)),
-                          ),
-                          onNext: () => vm.loadForDate(
-                            vm.selectedDate.add(const Duration(days: 1)),
-                          ),
-                          onTapDate: () => _selectDate(context),
-                          onToday: () => vm.loadForDate(DateTime.now()),
-                        ),
-                      ),
-                    ),
-
-                    // Cartão de Resumo e Métricas
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: _AttendanceSummaryCard(
-                          presentCount: vm.presentCount,
-                          absentCount: vm.absentCount,
-                          totalCount: vm.totalStudentsCount,
-                          attendanceRate: vm.attendanceRate,
-                          topic: vm.topic,
-                          onEditTopic: () => _showTopicDialog(context),
-                        ),
-                      ),
-                    ),
-
-                    // Barra de Ações Rápidas (Todos Presentes, Todos Ausentes)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: () => vm.markAll(true),
-                                icon: const Icon(
-                                  Icons.check_circle_outline,
-                                  size: 18,
-                                  color: Colors.green,
-                                ),
-                                label: const Text('Todos Presentes'),
-                                style: OutlinedButton.styleFrom(
-                                  visualDensity: VisualDensity.compact,
+                                  label: const Text('Todos Presentes'),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: () => vm.markAll(false),
-                                icon: const Icon(
-                                  Icons.cancel_outlined,
-                                  size: 18,
-                                  color: Colors.red,
-                                ),
-                                label: const Text('Todos Ausentes'),
-                                style: OutlinedButton.styleFrom(
-                                  visualDensity: VisualDensity.compact,
+                              const SizedBox(width: AppSpacing.sm),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => vm.markAll(false),
+                                  icon: const Icon(
+                                    Icons.remove_done_rounded,
+                                    size: AppSizes.iconSm,
+                                    color: AppColors.danger,
+                                  ),
+                                  label: const Text('Todos Ausentes'),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
 
-                    // Campo de Pesquisa de Estudantes
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
-                        child: TextField(
-                          controller: _searchController,
-                          onChanged: vm.updateSearchFilter,
-                          decoration: InputDecoration(
+                      // Campo de Pesquisa de Estudantes
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.page,
+                            0,
+                            AppSpacing.page,
+                            AppSpacing.md,
+                          ),
+                          child: AppSearchField(
+                            controller: _searchController,
                             hintText: 'Filtrar estudante por nome ou matrícula...',
-                            prefixIcon: const Icon(Icons.search, size: 20),
-                            suffixIcon: _searchController.text.isNotEmpty
-                                ? IconButton(
-                                    icon: const Icon(Icons.clear, size: 18),
-                                    onPressed: () {
-                                      _searchController.clear();
-                                      vm.clearSearch();
-                                    },
-                                  )
-                                : null,
-                            filled: true,
-                            fillColor: colorScheme.surfaceContainerHighest
-                                .withValues(alpha: 0.35),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
+                            onChanged: vm.updateSearchFilter,
+                            onClear: vm.clearSearch,
                           ),
                         ),
                       ),
-                    ),
 
-                    // Lista de Estudantes
-                    if (filteredStudents.isEmpty)
-                      const SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: Center(
-                          child: Text('Nenhum estudante corresponde ao filtro.'),
-                        ),
-                      )
-                    else
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                        sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              final student = filteredStudents[index];
-                              final isPresent = vm.isPresent(student.id);
-                              final obs = vm.observation(student.id);
+                      // Lista de Estudantes
+                      if (filteredStudents.isEmpty)
+                        const SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: EmptyStateView(
+                            icon: Icons.search_off_rounded,
+                            title: 'Nenhum resultado',
+                            message: 'Nenhum estudante corresponde ao filtro.',
+                          ),
+                        )
+                      else
+                        SliverPadding(
+                          padding: EdgeInsets.fromLTRB(
+                            AppSpacing.page,
+                            0,
+                            AppSpacing.page,
+                            MediaQuery.paddingOf(context).bottom + AppSpacing.xxl,
+                          ),
+                          sliver: SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                                final student = filteredStudents[index];
 
-                              return _StudentAttendanceCard(
-                                student: student,
-                                isPresent: isPresent,
-                                observation: obs,
-                                onToggle: () => vm.toggleStudent(student.id),
-                                onSetPresence: (val) =>
-                                    vm.setStudentPresence(student.id, val),
-                                onAddObservation: () =>
-                                    _showObservationDialog(context, student),
-                              );
-                            },
-                            childCount: filteredStudents.length,
+                                return _StudentAttendanceCard(
+                                  student: student,
+                                  isPresent: vm.isPresent(student.id),
+                                  observation: vm.observation(student.id),
+                                  onSetPresence: (val) =>
+                                      vm.setStudentPresence(student.id, val),
+                                  onAddObservation: () =>
+                                      _showObservationDialog(context, student),
+                                );
+                              },
+                              childCount: filteredStudents.length,
+                            ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
         );
       },
-    );
-  }
-}
-
-class _SaveStatusChip extends StatelessWidget {
-  const _SaveStatusChip({required this.isSaved});
-
-  final bool isSaved;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = isSaved ? Colors.green.shade700 : Colors.orange.shade800;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isSaved ? Icons.check_circle : Icons.edit_note,
-            size: 14,
-            color: color,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            isSaved ? 'Salva' : 'Pendente',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -480,68 +383,61 @@ class _DateNavigator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final now = DateTime.now();
     final isToday = selectedDate.year == now.year &&
         selectedDate.month == now.month &&
         selectedDate.day == now.day;
 
-    return Row(
-      children: [
-        IconButton.outlined(
-          onPressed: onPrev,
-          tooltip: 'Dia anterior',
-          visualDensity: VisualDensity.compact,
-          icon: const Icon(Icons.chevron_left),
-        ),
-        const SizedBox(width: 6),
-        Expanded(
-          child: InkWell(
-            onTap: onTapDate,
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: colorScheme.outlineVariant.withValues(alpha: 0.6),
-                ),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.calendar_today, size: 16, color: colorScheme.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    formattedDate,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.xs),
+      borderRadius: AppRadius.mdAll,
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: onPrev,
+            tooltip: 'Dia anterior',
+            icon: const Icon(Icons.chevron_left_rounded),
+          ),
+          Expanded(
+            child: InkWell(
+              onTap: onTapDate,
+              borderRadius: AppRadius.smAll,
+              child: SizedBox(
+                height: AppSizes.minTouchTarget,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.calendar_today_rounded,
+                      size: AppSizes.iconSm,
+                      color: AppColors.accent,
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.arrow_drop_down, size: 18),
-                ],
+                    const SizedBox(width: AppSpacing.sm),
+                    Text(
+                      formattedDate,
+                      style: AppTypography.numeric(textTheme.titleSmall),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(width: 6),
-        IconButton.outlined(
-          onPressed: onNext,
-          tooltip: 'Próximo dia',
-          visualDensity: VisualDensity.compact,
-          icon: const Icon(Icons.chevron_right),
-        ),
-        if (!isToday) ...[
-          const SizedBox(width: 6),
-          ActionChip(
-            label: const Text('Hoje'),
-            visualDensity: VisualDensity.compact,
-            onPressed: onToday,
+          if (!isToday)
+            TextButton(
+              onPressed: onToday,
+              style: TextButton.styleFrom(
+                minimumSize: const Size(0, AppSizes.minTouchTarget),
+              ),
+              child: const Text('Hoje'),
+            ),
+          IconButton(
+            onPressed: onNext,
+            tooltip: 'Próximo dia',
+            icon: const Icon(Icons.chevron_right_rounded),
           ),
         ],
-      ],
+      ),
     );
   }
 }
@@ -565,155 +461,97 @@ class _AttendanceSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final hasTopic = topic?.isNotEmpty == true;
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          children: [
-            Row(
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.lg,
+              AppSpacing.lg,
+              AppSpacing.md,
+            ),
+            child: Column(
               children: [
-                Expanded(
-                  child: _StatBadge(
-                    label: 'Presentes',
-                    count: presentCount,
-                    color: Colors.green.shade700,
-                    icon: Icons.check_circle_outline,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: MetricTile(
+                        value: '$presentCount',
+                        label: 'Presentes',
+                        tone: AppTone.success,
+                      ),
+                    ),
+                    Expanded(
+                      child: MetricTile(
+                        value: '$absentCount',
+                        label: 'Faltas',
+                        tone: AppTone.danger,
+                      ),
+                    ),
+                    Expanded(
+                      child: MetricTile(
+                        value: '${attendanceRate.toStringAsFixed(0)}%',
+                        label: 'Frequência',
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _StatBadge(
-                    label: 'Faltas',
-                    count: absentCount,
-                    color: Colors.red.shade700,
-                    icon: Icons.highlight_off,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _StatBadge(
-                    label: 'Frequência',
-                    countString: '${attendanceRate.toStringAsFixed(0)}%',
-                    color: colorScheme.primary,
-                    icon: Icons.pie_chart_outline,
+                const SizedBox(height: AppSpacing.md),
+                ClipRRect(
+                  borderRadius: AppRadius.pillAll,
+                  child: LinearProgressIndicator(
+                    value: totalCount == 0 ? 0 : presentCount / totalCount,
+                    minHeight: 6,
+                    backgroundColor: AppColors.danger.withValues(alpha: 0.25),
+                    color: AppColors.success,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: totalCount == 0 ? 0 : presentCount / totalCount,
-                minHeight: 6,
-                backgroundColor: Colors.red.shade200,
-                color: Colors.green.shade600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            InkWell(
-              onTap: onEditTopic,
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.menu_book_outlined,
-                      size: 15,
-                      color: colorScheme.primary,
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        topic?.isNotEmpty == true
-                            ? 'Conteúdo: $topic'
-                            : 'Toque para adicionar conteúdo da aula',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: topic?.isNotEmpty == true
-                              ? colorScheme.onSurface
-                              : colorScheme.onSurfaceVariant,
-                          fontStyle: topic?.isNotEmpty == true
-                              ? FontStyle.normal
-                              : FontStyle.italic,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Icon(
-                      Icons.edit_outlined,
-                      size: 14,
-                      color: colorScheme.primary,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StatBadge extends StatelessWidget {
-  const _StatBadge({
-    required this.label,
-    this.count,
-    this.countString,
-    required this.color,
-    required this.icon,
-  });
-
-  final String label;
-  final int? count;
-  final String? countString;
-  final Color color;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 14, color: color),
-              const SizedBox(width: 4),
-              Text(
-                countString ?? '$count',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-            ],
           ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w500,
+          const Divider(),
+          InkWell(
+            onTap: onEditTopic,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.md,
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.menu_book_outlined,
+                    size: AppSizes.iconSm,
+                    color: AppColors.textTertiary,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      hasTopic
+                          ? 'Conteúdo: $topic'
+                          : 'Toque para adicionar conteúdo da aula',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: hasTopic
+                            ? AppColors.textPrimary
+                            : AppColors.textTertiary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const Icon(
+                    Icons.edit_outlined,
+                    size: AppSizes.iconSm,
+                    color: AppColors.accent,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -727,7 +565,6 @@ class _StudentAttendanceCard extends StatelessWidget {
     required this.student,
     required this.isPresent,
     this.observation,
-    required this.onToggle,
     required this.onSetPresence,
     required this.onAddObservation,
   });
@@ -735,131 +572,123 @@ class _StudentAttendanceCard extends StatelessWidget {
   final Student student;
   final bool isPresent;
   final String? observation;
-  final VoidCallback onToggle;
   final ValueChanged<bool> onSetPresence;
   final VoidCallback onAddObservation;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isPresent
-              ? colorScheme.outlineVariant.withValues(alpha: 0.4)
-              : Colors.red.shade200,
-          width: isPresent ? 1 : 1.5,
-        ),
+    return AppCard(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md + 2,
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.sm,
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: isPresent
-                      ? Colors.green.shade100
-                      : Colors.red.shade100,
-                  foregroundColor: isPresent
-                      ? Colors.green.shade800
-                      : Colors.red.shade800,
-                  child: Text(
-                    student.initials,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        student.name,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        'Matrícula: ${student.registration}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Botões de Presença / Falta
-                _PresenceToggle(
-                  isPresent: isPresent,
-                  onChanged: onSetPresence,
-                ),
-              ],
-            ),
-            if (observation != null) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
+      borderColor: isPresent
+          ? AppColors.border
+          : AppColors.danger.withValues(alpha: 0.35),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              AppAvatar(
+                initials: student.initials,
+                tone: isPresent ? AppTone.success : AppTone.danger,
+                size: AppSizes.avatarSm + 4,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: 14,
-                      color: colorScheme.primary,
+                    Text(
+                      student.name,
+                      style: textTheme.titleSmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        observation!,
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ),
-                    InkWell(
-                      onTap: onAddObservation,
-                      child: const Icon(Icons.edit, size: 14),
+                    Text(
+                      'Matrícula: ${student.registration}',
+                      style: textTheme.bodySmall,
                     ),
                   ],
                 ),
               ),
-            ] else ...[
-              Align(
-                alignment: Alignment.centerRight,
+              const SizedBox(width: AppSpacing.sm),
+              _PresenceToggle(
+                isPresent: isPresent,
+                onChanged: onSetPresence,
+              ),
+            ],
+          ),
+          if (observation != null)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.sm),
+              child: Material(
+                color: AppColors.surfaceElevated,
+                borderRadius: AppRadius.smAll,
                 child: InkWell(
                   onTap: onAddObservation,
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: AppRadius.smAll,
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 4, left: 6, right: 6),
-                    child: Text(
-                      '+ Adicionar observação',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: colorScheme.primary,
-                      ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.sm,
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.sticky_note_2_outlined,
+                          size: AppSizes.iconXs,
+                          color: AppColors.accent,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            observation!,
+                            style: textTheme.bodySmall?.copyWith(
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.edit_outlined,
+                          size: AppSizes.iconXs,
+                          color: AppColors.textTertiary,
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
-            ],
-          ],
-        ),
+            )
+          else
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: onAddObservation,
+                icon: const Icon(Icons.add_rounded, size: AppSizes.iconSm),
+                label: const Text('Adicionar observação'),
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(0, 36),
+                  textStyle: textTheme.labelMedium,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
 }
 
+/// Controle segmentado Presente / Falta.
 class _PresenceToggle extends StatelessWidget {
   const _PresenceToggle({
     required this.isPresent,
@@ -872,75 +701,91 @@ class _PresenceToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade300),
+      padding: const EdgeInsets.all(3),
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceHighest,
+        borderRadius: AppRadius.smAll,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Botão Presente
-          InkWell(
+          _PresenceSegment(
+            label: 'P',
+            semanticLabel: 'Presente',
+            icon: Icons.check_rounded,
+            selected: isPresent,
+            tone: AppTone.success,
             onTap: () => onChanged(true),
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: isPresent ? Colors.green.shade600 : Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.check,
-                    size: 16,
-                    color: isPresent ? Colors.white : Colors.grey.shade600,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'P',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: isPresent ? Colors.white : Colors.grey.shade600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ),
-          // Botão Ausente
-          InkWell(
+          _PresenceSegment(
+            label: 'F',
+            semanticLabel: 'Falta',
+            icon: Icons.close_rounded,
+            selected: !isPresent,
+            tone: AppTone.danger,
             onTap: () => onChanged(false),
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: !isPresent ? Colors.red.shade600 : Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.close,
-                    size: 16,
-                    color: !isPresent ? Colors.white : Colors.grey.shade600,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'F',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: !isPresent ? Colors.white : Colors.grey.shade600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PresenceSegment extends StatelessWidget {
+  const _PresenceSegment({
+    required this.label,
+    required this.semanticLabel,
+    required this.icon,
+    required this.selected,
+    required this.tone,
+    required this.onTap,
+  });
+
+  final String label;
+  final String semanticLabel;
+  final IconData icon;
+  final bool selected;
+  final AppTone tone;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = selected ? AppColors.onAccent : AppColors.textTertiary;
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: semanticLabel,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: AppMotion.fast,
+          curve: AppMotion.curve,
+          constraints: const BoxConstraints(minHeight: 36, minWidth: 48),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm + 2),
+          decoration: BoxDecoration(
+            color: selected ? tone.color : Colors.transparent,
+            borderRadius: const BorderRadius.all(Radius.circular(7)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: AppSizes.iconSm, color: foreground),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: foreground,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

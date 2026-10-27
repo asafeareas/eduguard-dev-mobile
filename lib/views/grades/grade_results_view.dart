@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../models/grades/assessment.dart';
+import '../../theme/app_theme.dart';
 import '../../viewmodels/grades/grades_view_model.dart';
+import '../../widgets/app_avatar.dart';
+import '../../widgets/app_card.dart';
+import '../../widgets/section_header.dart';
+import '../../widgets/status_badge.dart';
 
 /// Tela de consulta das notas salvas da turma, por avaliação e por estudante.
 /// Ao tocar em "Editar" de uma avaliação, retorna seu id para a tela de lançamento.
@@ -16,8 +21,6 @@ class GradeResultsView extends StatelessWidget {
       listenable: viewModel,
       builder: (context, _) {
         final vm = viewModel;
-        final theme = Theme.of(context);
-        final colorScheme = theme.colorScheme;
         final assessments = vm.assessments;
         final students = vm.allStudents;
 
@@ -25,144 +28,109 @@ class GradeResultsView extends StatelessWidget {
           appBar: AppBar(title: const Text('Resultados da Turma')),
           body: CustomScrollView(
             slivers: [
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                  child: Text(
-                    'Avaliações',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+              const SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  AppSpacing.page,
+                  AppSpacing.sm,
+                  AppSpacing.page,
+                  0,
+                ),
+                sliver: SliverToBoxAdapter(
+                  child: SectionHeader(title: 'Avaliações'),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.page,
+                ),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final a = assessments[index];
+                      return _AssessmentResultCard(
+                        assessment: a,
+                        savedCount: vm.savedCount(a.id),
+                        totalCount: vm.totalStudentsCount,
+                        average: vm.savedAverage(a.id),
+                        onEdit: () => Navigator.of(context).pop(a.id),
+                      );
+                    },
+                    childCount: assessments.length,
                   ),
                 ),
               ),
-              SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final a = assessments[index];
-                    final average = vm.savedAverage(a.id);
-                    return Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                      child: Card(
-                        elevation: 0,
-                        margin: EdgeInsets.zero,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          side: BorderSide(
-                            color: colorScheme.outlineVariant
-                                .withValues(alpha: 0.5),
-                          ),
-                        ),
-                        child: ListTile(
-                          title: Text(a.title),
-                          subtitle: Text(
-                            '${a.type.label} • ${a.formattedDate} • Escala ${a.scaleLabel} • Peso ${Assessment.formatScore(a.weight)}\n'
-                            '${vm.savedCount(a.id)} de ${vm.totalStudentsCount} notas • Média ${average == null ? '—' : Assessment.formatScore(average)}',
-                          ),
-                          isThreeLine: true,
-                          trailing: TextButton.icon(
-                            onPressed: () => Navigator.of(context).pop(a.id),
-                            icon: const Icon(Icons.edit_outlined, size: 18),
-                            label: const Text('Editar'),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                  childCount: assessments.length,
+              const SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  AppSpacing.page,
+                  AppSpacing.xxl,
+                  AppSpacing.page,
+                  0,
                 ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                  child: Text(
-                    'Notas por Estudante',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  child: Text(
-                    'Média ponderada na escala 0 a 10, considerando as avaliações com nota lançada.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                sliver: SliverToBoxAdapter(
+                  child: SectionHeader(
+                    title: 'Notas por Estudante',
+                    subtitle:
+                        'Média ponderada na escala 0 a 10, considerando as avaliações com nota lançada.',
                   ),
                 ),
               ),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.page,
+                  0,
+                  AppSpacing.page,
+                  AppSpacing.xxl,
+                ),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final student = students[index];
                       final average = vm.weightedAverage(student.id);
-                      return Card(
-                        elevation: 0,
-                        margin: const EdgeInsets.only(bottom: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          side: BorderSide(
-                            color: colorScheme.outlineVariant
-                                .withValues(alpha: 0.5),
-                          ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      student.name,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
+
+                      return AppCard(
+                        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        padding: const EdgeInsets.all(AppSpacing.md + 2),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                AppAvatar(
+                                  initials: student.initials,
+                                  size: AppSizes.avatarSm,
+                                ),
+                                const SizedBox(width: AppSpacing.md),
+                                Expanded(
+                                  child: Text(
+                                    student.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleSmall,
                                   ),
-                                  Text(
-                                    'Média ${average == null ? '—' : Assessment.formatScore(average)}',
-                                    style: theme.textTheme.labelLarge?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: colorScheme.primary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                children: assessments.map((a) {
-                                  final score =
-                                      vm.savedScore(a.id, student.id);
-                                  return Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: colorScheme.surfaceContainerHighest
-                                          .withValues(alpha: 0.4),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                StatusBadge(
+                                  label:
+                                      'Média ${average == null ? '—' : Assessment.formatScore(average)}',
+                                  tone: AppTone.accent,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            Wrap(
+                              spacing: AppSpacing.xs + 2,
+                              runSpacing: AppSpacing.xs + 2,
+                              children: assessments.map((a) {
+                                final score = vm.savedScore(a.id, student.id);
+                                return StatusBadge(
+                                  label:
                                       '${a.title}: ${score == null ? '—' : '${Assessment.formatScore(score)}/${Assessment.formatScore(a.maxScore)}'}',
-                                      style: theme.textTheme.labelSmall,
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ],
-                          ),
+                                );
+                              }).toList(),
+                            ),
+                          ],
                         ),
                       );
                     },
@@ -174,6 +142,67 @@ class GradeResultsView extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _AssessmentResultCard extends StatelessWidget {
+  const _AssessmentResultCard({
+    required this.assessment,
+    required this.savedCount,
+    required this.totalCount,
+    required this.average,
+    required this.onEdit,
+  });
+
+  final Assessment assessment;
+  final int savedCount;
+  final int totalCount;
+  final double? average;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final a = assessment;
+
+    return AppCard(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.md + 2,
+        AppSpacing.sm,
+        AppSpacing.md + 2,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(a.title, style: textTheme.titleSmall),
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  '${a.type.label} • ${a.formattedDate} • Escala ${a.scaleLabel} • Peso ${Assessment.formatScore(a.weight)}',
+                  style: textTheme.bodySmall,
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  '$savedCount de $totalCount notas • Média ${average == null ? '—' : Assessment.formatScore(average!)}',
+                  style: AppTypography.numeric(textTheme.labelMedium).copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton.icon(
+            onPressed: onEdit,
+            icon: const Icon(Icons.edit_outlined, size: AppSizes.iconSm),
+            label: const Text('Editar'),
+          ),
+        ],
+      ),
     );
   }
 }
