@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../models/academic/academic_class.dart';
 import '../../viewmodels/attendance/attendance_view_model.dart';
+import '../../viewmodels/grades/grades_view_model.dart';
 import '../../viewmodels/home_view_model.dart';
 import '../../widgets/academic_feature_button.dart';
 import '../../widgets/class_card.dart';
@@ -9,6 +11,7 @@ import '../../widgets/section_header.dart';
 import '../../widgets/stat_card.dart';
 import '../academic/classes_view.dart';
 import '../attendance/attendance_view.dart';
+import '../grades/grades_view.dart';
 
 /// Tela inicial (Dashboard) do professor no EduGuard.
 class HomeView extends StatefulWidget {
@@ -38,13 +41,40 @@ class _HomeViewState extends State<HomeView> {
   }
 
   void _showClassSelectionForAttendance(BuildContext context) {
+    _showClassSelection(
+      context,
+      featureTitle: 'Frequência dos Estudantes',
+      sheetTitle: 'Selecione a Turma para Chamada',
+      emptyMessage: 'Não há turmas cadastradas para realizar a chamada.',
+      builder: (item) => AttendanceView(
+        viewModel: AttendanceViewModel(academicClass: item),
+      ),
+    );
+  }
+
+  void _showClassSelectionForGrades(BuildContext context) {
+    _showClassSelection(
+      context,
+      featureTitle: 'Lançamento de Notas',
+      sheetTitle: 'Selecione a Turma para Notas',
+      emptyMessage: 'Não há turmas cadastradas para lançar notas.',
+      builder: _gradesPageFor,
+    );
+  }
+
+  Widget _gradesPageFor(AcademicClass item) =>
+      GradesView(viewModel: GradesViewModel(academicClass: item));
+
+  void _showClassSelection(
+    BuildContext context, {
+    required String featureTitle,
+    required String sheetTitle,
+    required String emptyMessage,
+    required Widget Function(AcademicClass item) builder,
+  }) {
     final classes = widget.viewModel.classesViewModel.filteredClasses;
     if (classes.isEmpty) {
-      _showFeatureNotice(
-        context,
-        'Frequência dos Estudantes',
-        'Não há turmas cadastradas para realizar a chamada.',
-      );
+      _showFeatureNotice(context, featureTitle, emptyMessage);
       return;
     }
 
@@ -65,7 +95,7 @@ class _HomeViewState extends State<HomeView> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Selecione a Turma para Chamada',
+                      sheetTitle,
                       style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -91,10 +121,7 @@ class _HomeViewState extends State<HomeView> {
                       Navigator.of(ctx).pop();
                       Navigator.of(context).push(
                         MaterialPageRoute<void>(
-                          builder: (_) => AttendanceView(
-                            viewModel:
-                                AttendanceViewModel(academicClass: item),
-                          ),
+                          builder: (_) => builder(item),
                         ),
                       );
                     },
@@ -272,11 +299,7 @@ class _HomeViewState extends State<HomeView> {
                         description:
                             'Acompanhe avaliações, provas, trabalhos e médias parciais.',
                         icon: Icons.grade_outlined,
-                        onTap: () => _showFeatureNotice(
-                          context,
-                          'Lançamento de Notas',
-                          'Módulo para registro de notas e cálculo de médias conforme o regimento acadêmico.',
-                        ),
+                        onTap: () => _showClassSelectionForGrades(context),
                       ),
                       const SizedBox(height: 10),
 
@@ -328,12 +351,10 @@ class _HomeViewState extends State<HomeView> {
                               );
                             },
                             onGradesTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Notas de ${academicClass.name}',
-                                  ),
-                                  behavior: SnackBarBehavior.floating,
+                              Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) =>
+                                      _gradesPageFor(academicClass),
                                 ),
                               );
                             },
