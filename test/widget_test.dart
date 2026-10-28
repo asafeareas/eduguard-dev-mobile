@@ -1,10 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:eduguard/app.dart';
+import 'support/fake_auth_repository.dart';
 
 void main() {
   testWidgets('exibe a identidade do EduGuard na tela inicial', (tester) async {
-    await tester.pumpWidget(const EduGuardApp());
+    await tester.pumpWidget(buildSignedInApp());
+    await tester.pumpAndSettle();
 
     expect(find.text('EduGuard'), findsWidgets);
     expect(find.text('Gestão acadêmica para docentes'), findsOneWidget);

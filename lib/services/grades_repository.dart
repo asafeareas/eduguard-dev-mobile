@@ -1,22 +1,34 @@
+import 'dart:convert';
+
 import '../models/academic/academic_class.dart';
 import '../models/grades/assessment.dart';
 import '../models/grades/grade_record.dart';
 import '../viewmodels/academic/students_view_model.dart';
+import 'storage/key_value_store.dart';
 
 /// Repositório de Notas.
 ///
-/// Armazena avaliações e notas em memória durante a sessão, garantindo que cada nota
-/// esteja vinculada a um estudante, a uma turma e a uma avaliação existente.
-/// Preparado para o Dia 6 (armazenamento local/offline com SQLite, Hive ou SharedPreferences).
+/// Armazena avaliações e notas, garantindo que cada nota esteja vinculada a um
+/// estudante, a uma turma e a uma avaliação existente. Com um [KeyValueStore]
+/// (escopado ao professor), persiste os dados localmente entre sessões; sem ele,
+/// mantém tudo apenas em memória (útil em testes).
 class GradesRepository {
-  GradesRepository({bool populateSamples = true}) {
-    if (populateSamples) {
-      _populateDefaultSamples();
+  GradesRepository({
+    bool populateSamples = true,
+    KeyValueStore? store,
+    this.storageKey = 'grades',
+  }) : _store = store {
+    if (store == null) {
+      if (populateSamples) _populateDefaultSamples();
+      _ready = Future.value();
+    } else {
+      _ready = _restore(populateSamples);
     }
   }
 
-  /// Instância padrão compartilhada no app
-  static final GradesRepository instance = GradesRepository();
+  final KeyValueStore? _store;
+  final String storageKey;
+  late final Future<void> _ready;
 
   /// Armazenamento em memória: assessment.id -> Assessment
   final Map<String, Assessment> _assessments = {};
@@ -26,6 +38,7 @@ class GradesRepository {
 
   /// Retorna as avaliações de uma turma, ordenadas pela data de aplicação
   Future<List<Assessment>> getAssessmentsForClass(String classId) async {
+    await _ready;
     final list = _assessments.values
         .where((a) => a.classId == classId)
         .toList();
@@ -36,6 +49,7 @@ class GradesRepository {
 
   /// Salva ou atualiza uma avaliação.
   Future<void> saveAssessment(Assessment assessment) async {
+    await _ready;
     if (assessment.title.trim().isEmpty) {
       throw ArgumentError('A avaliação precisa de um título.');
     }
@@ -46,10 +60,12 @@ class GradesRepository {
       throw ArgumentError('O peso da avaliação deve ser maior que zero.');
     }
     _assessments[assessment.id] = assessment;
+    await _persist();
   }
 
   /// Retorna as notas lançadas em uma avaliação
   Future<List<GradeRecord>> getGradesForAssessment(String assessmentId) async {
+    await _ready;
     return List.unmodifiable(
       _grades.values.where((g) => g.assessmentId == assessmentId),
     );
@@ -57,6 +73,7 @@ class GradesRepository {
 
   /// Retorna todas as notas lançadas em uma turma
   Future<List<GradeRecord>> getGradesForClass(String classId) async {
+    await _ready;
     return List.unmodifiable(
       _grades.values.where((g) => g.classId == classId),
     );
@@ -69,6 +86,7 @@ class GradesRepository {
     String assessmentId,
     List<GradeRecord> records,
   ) async {
+    await _ready;
     final assessment = _assessments[assessmentId];
     if (assessment == null) {
       throw StateError('Avaliação não encontrada.');
@@ -93,12 +111,45 @@ class GradesRepository {
     for (final record in records) {
       _grades[record.id] = record.copyWith(updatedAt: now);
     }
+    await _persist();
   }
 
   /// Limpa todos os registros (útil para testes unitários)
   void clear() {
     _assessments.clear();
     _grades.clear();
+    _store?.delete(storageKey);
+  }
+
+  Future<void> _restore(bool populateSamples) async {
+    final raw = await _store!.read(storageKey);
+    if (raw != null) {
+      final data = jsonDecode(raw) as Map<String, dynamic>;
+      for (final item in data['assessments'] as List<dynamic>) {
+        final a = Assessment.fromJson(item as Map<String, dynamic>);
+        _assessments[a.id] = a;
+      }
+      for (final item in data['grades'] as List<dynamic>) {
+        final g = GradeRecord.fromJson(item as Map<String, dynamic>);
+        _grades[g.id] = g;
+      }
+      return;
+    }
+    // Primeiro acesso do professor: cria uma cópia própria dos exemplos.
+    if (populateSamples) {
+      _populateDefaultSamples();
+      await _persist();
+    }
+  }
+
+  Future<void> _persist() async {
+    await _store?.write(
+      storageKey,
+      jsonEncode({
+        'assessments': _assessments.values.map((a) => a.toJson()).toList(),
+        'grades': _grades.values.map((g) => g.toJson()).toList(),
+      }),
+    );
   }
 
   /// Popula avaliações de exemplo e notas da primeira avaliação de cada turma

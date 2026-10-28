@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/academic/student.dart';
+import '../../services/academic_data_scope.dart';
 import '../../theme/app_theme.dart';
 import '../../viewmodels/academic/students_view_model.dart';
 import '../../viewmodels/attendance/attendance_view_model.dart';
@@ -23,6 +24,7 @@ class StudentsView extends StatelessWidget {
           viewModel: AttendanceViewModel(
             academicClass: viewModel.academicClass,
             students: students,
+            repository: AcademicScope.of(context).attendance,
           ),
         ),
       ),

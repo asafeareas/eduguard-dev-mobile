@@ -199,7 +199,8 @@ void main() {
     });
 
     test('filtrar estudantes por busca funciona corretamente', () {
-      viewModel.updateSearchFilter(sampleStudents.first.name);
+      // Matrícula é única; o nome base se repete em turmas com mais de 20 alunos.
+      viewModel.updateSearchFilter(sampleStudents.first.registration);
       expect(viewModel.filteredStudents.length, 1);
       expect(viewModel.filteredStudents.first.name, sampleStudents.first.name);
 
@@ -210,6 +211,12 @@ void main() {
 
   group('Attendance Views Widgets', () {
     testWidgets('exibe elementos da tela de chamada e permite alternar presenças', (tester) async {
+      // Tela alta: a barra inferior translúcida não cobre a lista.
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       final repository = AttendanceRepository(populateSamples: false);
       final viewModel = AttendanceViewModel(
         academicClass: sampleClass,
@@ -217,7 +224,6 @@ void main() {
         repository: repository,
         initialDate: DateTime(2026, 10, 23),
       );
-      await Future<void>.delayed(Duration.zero);
 
       await tester.pumpWidget(
         MaterialApp(
@@ -258,7 +264,6 @@ void main() {
         repository: repository,
         initialDate: DateTime(2026, 10, 23),
       );
-      await Future<void>.delayed(Duration.zero);
 
       await tester.pumpWidget(
         MaterialApp(

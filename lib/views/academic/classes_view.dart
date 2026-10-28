@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/academic/academic_class.dart';
+import '../../services/academic_data_scope.dart';
 import '../../theme/app_theme.dart';
 import '../../viewmodels/academic/classes_view_model.dart';
 import '../../viewmodels/academic/students_view_model.dart';
@@ -415,6 +416,8 @@ class _ClassesViewState extends State<ClassesView> {
                               builder: (_) => AttendanceView(
                                 viewModel: AttendanceViewModel(
                                   academicClass: item,
+                                  repository:
+                                      AcademicScope.of(context).attendance,
                                 ),
                               ),
                             ),
@@ -426,6 +429,7 @@ class _ClassesViewState extends State<ClassesView> {
                               builder: (_) => GradesView(
                                 viewModel: GradesViewModel(
                                   academicClass: item,
+                                  repository: AcademicScope.of(context).grades,
                                 ),
                               ),
                             ),

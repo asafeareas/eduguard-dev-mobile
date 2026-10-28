@@ -4,19 +4,34 @@ import '../models/academic/academic_class.dart';
 import '../models/academic/academic_module.dart';
 import '../models/app_identity.dart';
 import '../models/teacher/teacher_profile.dart';
+import '../services/classes_repository.dart';
 import 'academic/classes_view_model.dart';
 
 class HomeViewModel extends ChangeNotifier {
   HomeViewModel({
     this.identity = AppIdentity.current,
-    this.teacher = TeacherProfile.defaultTeacher,
+    this._teacher = TeacherProfile.defaultTeacher,
     ClassesViewModel? classesViewModel,
-  }) : classesViewModel = classesViewModel ?? ClassesViewModel() {
+    ClassesRepository? classesRepository,
+  }) : classesViewModel =
+           classesViewModel ?? ClassesViewModel(repository: classesRepository) {
     this.classesViewModel.addListener(_onClassesChanged);
   }
 
   final AppIdentity identity;
-  final TeacherProfile teacher;
+  TeacherProfile _teacher;
+  TeacherProfile get teacher => _teacher;
+
+  /// Atualiza o perfil exibido (ex.: nome definido logo após o cadastro).
+  void updateTeacher(TeacherProfile teacher) {
+    if (teacher.id == _teacher.id &&
+        teacher.name == _teacher.name &&
+        teacher.email == _teacher.email) {
+      return;
+    }
+    _teacher = teacher;
+    notifyListeners();
+  }
   final ClassesViewModel classesViewModel;
 
   void _onClassesChanged() {
@@ -37,6 +52,7 @@ class HomeViewModel extends ChangeNotifier {
   @override
   void dispose() {
     classesViewModel.removeListener(_onClassesChanged);
+    classesViewModel.dispose();
     super.dispose();
   }
 }

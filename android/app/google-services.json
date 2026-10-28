@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "646605629834",
+    "project_id": "eduguard-dev-mobile",
+    "storage_bucket": "eduguard-dev-mobile.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:646605629834:android:155e17bf2d22f0d1f30073",
+        "android_client_info": {
+          "package_name": "com.eduguard.eduguard"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAHIYfkS1Me3_NlT-YImb9cheWrgbj0Zt8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

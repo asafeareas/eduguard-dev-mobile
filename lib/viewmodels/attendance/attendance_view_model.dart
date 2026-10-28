@@ -12,10 +12,9 @@ class AttendanceViewModel extends ChangeNotifier {
   AttendanceViewModel({
     required this.academicClass,
     List<Student>? students,
-    AttendanceRepository? repository,
+    required this._repository,
     DateTime? initialDate,
   })  : _students = students ?? SampleStudents.forClass(academicClass.id),
-        _repository = repository ?? AttendanceRepository.instance,
         _selectedDate = AttendanceSession.normalizeDate(initialDate ?? DateTime.now()) {
     _initializeForCurrentDate();
   }

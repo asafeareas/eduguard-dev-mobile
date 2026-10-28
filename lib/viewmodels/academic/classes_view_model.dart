@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../models/academic/academic_class.dart';
+import '../../services/classes_repository.dart';
 
 enum ClassesStatus {
   initial,
@@ -11,19 +12,28 @@ enum ClassesStatus {
 }
 
 class ClassesViewModel extends ChangeNotifier {
+  /// Com [repository], as turmas são carregadas e persistidas no repositório
+  /// do professor autenticado; sem ele, a lista vive apenas em memória.
   ClassesViewModel({
     List<AcademicClass>? initialClasses,
-  }) : _classes = initialClasses != null
+    ClassesRepository? repository,
+  }) : _repository = repository,
+       _classes = initialClasses != null
             ? List.of(initialClasses)
-            : List.of(AcademicClass.sampleClasses) {
-    if (_classes.isEmpty) {
+            : (repository != null ? [] : List.of(AcademicClass.sampleClasses)) {
+    if (repository != null && initialClasses == null) {
+      _status = ClassesStatus.loading;
+      _loadFromRepository();
+    } else if (_classes.isEmpty) {
       _status = ClassesStatus.empty;
     } else {
       _status = ClassesStatus.success;
     }
   }
 
+  final ClassesRepository? _repository;
   List<AcademicClass> _classes;
+  bool _isDisposed = false;
   ClassesStatus _status = ClassesStatus.initial;
   String? _errorMessage;
   String _searchQuery = '';
@@ -90,12 +100,38 @@ class ClassesViewModel extends ChangeNotifier {
       return;
     }
 
+    if (_repository != null) {
+      await _loadFromRepository();
+      return;
+    }
+
     if (_classes.isEmpty) {
       _classes = List.of(AcademicClass.sampleClasses);
     }
 
     _status = _classes.isEmpty ? ClassesStatus.empty : ClassesStatus.success;
     notifyListeners();
+  }
+
+  Future<void> _loadFromRepository() async {
+    try {
+      _classes = List.of(await _repository!.getClasses());
+      _status = _classes.isEmpty ? ClassesStatus.empty : ClassesStatus.success;
+      _errorMessage = null;
+    } catch (_) {
+      _status = ClassesStatus.error;
+      _errorMessage =
+          'Não foi possível carregar suas turmas salvas neste dispositivo.';
+    }
+    _notify();
+  }
+
+  void _notify() {
+    if (!_isDisposed) notifyListeners();
+  }
+
+  Future<void> _persist() async {
+    await _repository?.saveClasses(_classes);
   }
 
   /// Força o estado de erro para demonstração/testes
@@ -106,20 +142,31 @@ class ClassesViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Força o estado vazio para demonstração/testes
+  /// Força o estado vazio para demonstração/testes.
+  /// Não altera as turmas persistidas; "Restaurar Turmas" as recarrega.
   void simulateEmpty() {
     _classes = [];
     _status = ClassesStatus.empty;
     notifyListeners();
   }
 
-  /// Restaura as turmas de exemplo
-  void restoreSamples() {
-    _classes = List.of(AcademicClass.sampleClasses);
-    _status = ClassesStatus.success;
+  /// Restaura as turmas: recarrega as turmas salvas do professor ou, se não
+  /// houver nenhuma, cria as turmas de exemplo.
+  Future<void> restoreSamples() async {
     _errorMessage = null;
     _searchQuery = '';
-    notifyListeners();
+    final repository = _repository;
+    if (repository != null) {
+      final saved = await repository.getClasses();
+      _classes = saved.isNotEmpty
+          ? List.of(saved)
+          : List.of(AcademicClass.sampleClasses);
+      if (saved.isEmpty) await _persist();
+    } else {
+      _classes = List.of(AcademicClass.sampleClasses);
+    }
+    _status = ClassesStatus.success;
+    _notify();
   }
 
   /// Adiciona uma nova turma
@@ -127,6 +174,7 @@ class ClassesViewModel extends ChangeNotifier {
     _classes.insert(0, newClass);
     _status = ClassesStatus.success;
     notifyListeners();
+    _persist();
   }
 
   /// Remove uma turma pelo ID
@@ -136,5 +184,12 @@ class ClassesViewModel extends ChangeNotifier {
       _status = ClassesStatus.empty;
     }
     notifyListeners();
+    _persist();
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
   }
 }

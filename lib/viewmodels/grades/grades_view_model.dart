@@ -20,9 +20,8 @@ class GradesViewModel extends ChangeNotifier {
   GradesViewModel({
     required this.academicClass,
     List<Student>? students,
-    GradesRepository? repository,
-  })  : _students = students ?? SampleStudents.forClass(academicClass.id),
-        _repository = repository ?? GradesRepository.instance {
+    required this._repository,
+  })  : _students = students ?? SampleStudents.forClass(academicClass.id) {
     loadAssessments();
   }
 

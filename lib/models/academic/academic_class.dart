@@ -45,6 +45,30 @@ class AcademicClass {
     );
   }
 
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'course': course,
+    'code': code,
+    'studentsCount': studentsCount,
+    'semester': semester,
+    'shift': shift,
+    'room': room,
+    'nextClass': nextClass,
+  };
+
+  factory AcademicClass.fromJson(Map<String, dynamic> json) => AcademicClass(
+    id: json['id'] as String,
+    name: json['name'] as String,
+    course: json['course'] as String,
+    code: json['code'] as String,
+    studentsCount: json['studentsCount'] as int,
+    semester: json['semester'] as String,
+    shift: json['shift'] as String,
+    room: json['room'] as String,
+    nextClass: json['nextClass'] as String,
+  );
+
   /// Lista inicial com turmas de exemplo.
   static const List<AcademicClass> sampleClasses = [
     AcademicClass(

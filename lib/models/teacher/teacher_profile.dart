@@ -1,3 +1,5 @@
+import '../auth/auth_user.dart';
+
 class TeacherProfile {
   const TeacherProfile({
     required this.id,
@@ -21,6 +23,24 @@ class TeacherProfile {
     if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
     return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
   }
+
+  /// Perfil básico do professor autenticado. Dados institucionais ainda não
+  /// são coletados no cadastro, por isso ficam vazios.
+  factory TeacherProfile.fromAuthUser(AuthUser user) {
+    final displayName = user.displayName?.trim() ?? '';
+    return TeacherProfile(
+      id: user.uid,
+      name: displayName.isNotEmpty ? displayName : user.email.split('@').first,
+      title: 'Docente',
+      institution: '',
+      department: '',
+      email: user.email,
+    );
+  }
+
+  /// Linha de apoio exibida abaixo do nome do professor.
+  String get subtitle =>
+      institution.isEmpty ? email : '$title • $institution';
 
   static const defaultTeacher = TeacherProfile(
     id: 'prof-01',

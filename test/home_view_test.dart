@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:eduguard/app.dart';
 import 'package:eduguard/viewmodels/home_view_model.dart';
 import 'package:eduguard/views/academic/classes_view.dart';
 import 'package:eduguard/views/home/home_view.dart';
 import 'package:eduguard/widgets/academic_feature_button.dart';
 import 'package:eduguard/widgets/stat_card.dart';
+
+import 'support/fake_auth_repository.dart';
 
 void main() {
   group('HomeView (Tela Inicial do Professor) Tests', () {
@@ -39,7 +40,7 @@ void main() {
 
     testWidgets('navega para a tela de turmas ao clicar no botão "Minhas Turmas"',
         (tester) async {
-      await tester.pumpWidget(const EduGuardApp());
+      await tester.pumpWidget(buildSignedInApp());
       await tester.pumpAndSettle();
 
       // Clica no botão de funcionalidade "Minhas Turmas"
@@ -61,14 +62,14 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(const EduGuardApp());
+      await tester.pumpWidget(buildSignedInApp());
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
 
       // Tela intermediária (412 x 915)
       tester.view.physicalSize = const Size(412, 915);
-      await tester.pumpWidget(const EduGuardApp());
+      await tester.pumpWidget(buildSignedInApp());
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);

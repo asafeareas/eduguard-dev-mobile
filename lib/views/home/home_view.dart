@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/academic/academic_class.dart';
+import '../../services/academic_data_scope.dart';
 import '../../theme/app_theme.dart';
 import '../../viewmodels/attendance/attendance_view_model.dart';
 import '../../viewmodels/grades/grades_view_model.dart';
@@ -21,9 +22,12 @@ import '../grades/grades_view.dart';
 
 /// Tela inicial (Dashboard) do professor no EduGuard.
 class HomeView extends StatefulWidget {
-  const HomeView({super.key, required this.viewModel});
+  const HomeView({super.key, required this.viewModel, this.onProfileTap});
 
   final HomeViewModel viewModel;
+
+  /// Abre o perfil do professor autenticado.
+  final VoidCallback? onProfileTap;
 
   @override
   State<HomeView> createState() => _HomeViewState();
@@ -52,11 +56,16 @@ class _HomeViewState extends State<HomeView> {
       featureTitle: 'Frequência dos Estudantes',
       sheetTitle: 'Selecione a Turma para Chamada',
       emptyMessage: 'Não há turmas cadastradas para realizar a chamada.',
-      builder: (item) => AttendanceView(
-        viewModel: AttendanceViewModel(academicClass: item),
-      ),
+      builder: _attendancePageFor,
     );
   }
+
+  Widget _attendancePageFor(AcademicClass item) => AttendanceView(
+    viewModel: AttendanceViewModel(
+      academicClass: item,
+      repository: AcademicScope.of(context).attendance,
+    ),
+  );
 
   void _showClassSelectionForGrades(BuildContext context) {
     _showClassSelection(
@@ -68,8 +77,12 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  Widget _gradesPageFor(AcademicClass item) =>
-      GradesView(viewModel: GradesViewModel(academicClass: item));
+  Widget _gradesPageFor(AcademicClass item) => GradesView(
+    viewModel: GradesViewModel(
+      academicClass: item,
+      repository: AcademicScope.of(context).grades,
+    ),
+  );
 
   void _showClassSelection(
     BuildContext context, {
@@ -242,6 +255,17 @@ class _HomeViewState extends State<HomeView> {
                   );
                 },
               ),
+              if (widget.onProfileTap != null)
+                IconButton(
+                  tooltip: 'Perfil do professor',
+                  onPressed: widget.onProfileTap,
+                  style: IconButton.styleFrom(shape: const CircleBorder()),
+                  icon: AppAvatar(
+                    initials: teacher.initials,
+                    tone: AppTone.accent,
+                    size: 32,
+                  ),
+                ),
               const SizedBox(width: AppSpacing.xs),
             ],
           ),
@@ -272,8 +296,7 @@ class _HomeViewState extends State<HomeView> {
                             tagline: identity.tagline,
                             version: identity.version,
                             teacherName: teacher.name,
-                            teacherTitle: teacher.title,
-                            institution: teacher.institution,
+                            teacherSubtitle: teacher.subtitle,
                             initials: teacher.initials,
                           ),
                           const SizedBox(height: AppSpacing.md),
@@ -364,11 +387,8 @@ class _HomeViewState extends State<HomeView> {
                                 onAttendanceTap: () {
                                   Navigator.of(context).push(
                                     MaterialPageRoute<void>(
-                                      builder: (_) => AttendanceView(
-                                        viewModel: AttendanceViewModel(
-                                          academicClass: academicClass,
-                                        ),
-                                      ),
+                                      builder: (_) =>
+                                          _attendancePageFor(academicClass),
                                     ),
                                   );
                                 },
@@ -411,16 +431,14 @@ class _TeacherProfileHeader extends StatelessWidget {
     required this.tagline,
     required this.version,
     required this.teacherName,
-    required this.teacherTitle,
-    required this.institution,
+    required this.teacherSubtitle,
     required this.initials,
   });
 
   final String tagline;
   final String version;
   final String teacherName;
-  final String teacherTitle;
-  final String institution;
+  final String teacherSubtitle;
   final String initials;
 
   @override
@@ -455,7 +473,7 @@ class _TeacherProfileHeader extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.xxs),
                     Text(
-                      '$teacherTitle • $institution',
+                      teacherSubtitle,
                       style: textTheme.bodySmall,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
