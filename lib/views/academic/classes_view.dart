@@ -20,10 +20,7 @@ import 'students_view.dart';
 
 /// Tela responsável pela visualização e gestão das turmas do professor.
 class ClassesView extends StatefulWidget {
-  const ClassesView({
-    super.key,
-    required this.viewModel,
-  });
+  const ClassesView({super.key, required this.viewModel});
 
   final ClassesViewModel viewModel;
 
@@ -32,6 +29,13 @@ class ClassesView extends StatefulWidget {
 }
 
 class _ClassesViewState extends State<ClassesView> {
+  static const List<String> _availableShifts = [
+    'Matutino',
+    'Vespertino',
+    'Noturno',
+    'Integral',
+  ];
+
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -45,7 +49,7 @@ class _ClassesViewState extends State<ClassesView> {
     final courseCtrl = TextEditingController();
     final codeCtrl = TextEditingController();
     final studentsCtrl = TextEditingController(text: '30');
-    final shiftCtrl = TextEditingController(text: 'Noturno');
+    String selectedShift = 'Noturno';
     final roomCtrl = TextEditingController(text: 'Sala 101');
     final formKey = GlobalKey<FormState>();
 
@@ -53,147 +57,164 @@ class _ClassesViewState extends State<ClassesView> {
       context: context,
       isScrollControlled: true,
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: AppSpacing.xl,
-            right: AppSpacing.xl,
-            top: AppSpacing.sm,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.xl,
-          ),
-          child: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SheetHeader(
-                    title: 'Nova Turma',
-                    subtitle: 'Preencha os dados da turma ou disciplina',
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  TextFormField(
-                    controller: nameCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Nome da Turma / Disciplina',
-                      hintText: 'Ex: Programação Orientada a Objetos',
-                      prefixIcon: Icon(Icons.menu_book_outlined),
-                    ),
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  TextFormField(
-                    controller: courseCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Curso',
-                      hintText: 'Ex: Ciência da Computação',
-                      prefixIcon: Icon(Icons.school_outlined),
-                    ),
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Informe o curso' : null,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: codeCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Código',
-                            hintText: 'Ex: CC-202',
-                                ),
-                          validator: (v) => (v == null || v.trim().isEmpty)
-                              ? 'Informe o código'
-                              : null,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: TextFormField(
-                          controller: studentsCtrl,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Estudantes',
-                            hintText: 'Ex: 35',
-                                ),
-                          validator: (v) {
-                            if (v == null || v.trim().isEmpty) {
-                              return 'Informe a qtd';
-                            }
-                            if (int.tryParse(v) == null) {
-                              return 'Valor inválido';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: shiftCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Turno',
-                            hintText: 'Noturno',
-                                ),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: TextFormField(
-                          controller: roomCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Sala / Local',
-                            hintText: 'Lab 01',
-                                ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: () {
-                        if (formKey.currentState?.validate() ?? false) {
-                          final newClass = AcademicClass(
-                            id: 'turma-${DateTime.now().millisecondsSinceEpoch}',
-                            name: nameCtrl.text.trim(),
-                            course: courseCtrl.text.trim(),
-                            code: codeCtrl.text.trim(),
-                            studentsCount:
-                                int.tryParse(studentsCtrl.text.trim()) ?? 30,
-                            semester: '2026/2',
-                            shift: shiftCtrl.text.trim().isEmpty
-                                ? 'Noturno'
-                                : shiftCtrl.text.trim(),
-                            room: roomCtrl.text.trim().isEmpty
-                                ? 'Sala a definir'
-                                : roomCtrl.text.trim(),
-                            nextClass: 'Em breve',
-                          );
-
-                          widget.viewModel.addClass(newClass);
-                          Navigator.of(ctx).pop();
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Turma "${newClass.name}" cadastrada!'),
-                            ),
-                          );
-                        }
-                      },
-                      child: const Text('Salvar Turma'),
-                    ),
-                  ),
-                ],
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: AppSpacing.xl,
+                right: AppSpacing.xl,
+                top: AppSpacing.sm,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.xl,
               ),
-            ),
-          ),
+              child: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SheetHeader(
+                        title: 'Nova Turma',
+                        subtitle: 'Preencha os dados da turma ou disciplina',
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      TextFormField(
+                        controller: nameCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Nome da Turma / Disciplina',
+                          hintText: 'Ex: Programação Orientada a Objetos',
+                          prefixIcon: Icon(Icons.menu_book_outlined),
+                        ),
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'Informe o nome'
+                            : null,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      TextFormField(
+                        controller: courseCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Curso',
+                          hintText: 'Ex: Ciência da Computação',
+                          prefixIcon: Icon(Icons.school_outlined),
+                        ),
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'Informe o curso'
+                            : null,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: codeCtrl,
+                              decoration: const InputDecoration(
+                                labelText: 'Código',
+                                hintText: 'Ex: CC-202',
+                              ),
+                              validator: (v) => (v == null || v.trim().isEmpty)
+                                  ? 'Informe o código'
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: TextFormField(
+                              controller: studentsCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Estudantes',
+                                hintText: 'Ex: 35',
+                              ),
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) {
+                                  return 'Informe a qtd';
+                                }
+                                if (int.tryParse(v) == null) {
+                                  return 'Valor inválido';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: selectedShift,
+                              dropdownColor: AppColors.surfaceElevated,
+                              decoration: const InputDecoration(
+                                labelText: 'Turno',
+                              ),
+                              items: _availableShifts
+                                  .map((s) => DropdownMenuItem(
+                                        value: s,
+                                        child: Text(s),
+                                      ))
+                                  .toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setModalState(() => selectedShift = val);
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: TextFormField(
+                              controller: roomCtrl,
+                              decoration: const InputDecoration(
+                                labelText: 'Sala / Local',
+                                hintText: 'Lab 01',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.xxl),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: () {
+                            if (formKey.currentState?.validate() ?? false) {
+                              final newClass = AcademicClass(
+                                id: 'turma-${DateTime.now().millisecondsSinceEpoch}',
+                                name: nameCtrl.text.trim(),
+                                course: courseCtrl.text.trim(),
+                                code: codeCtrl.text.trim(),
+                                studentsCount:
+                                    int.tryParse(studentsCtrl.text.trim()) ?? 30,
+                                semester: '2026/2',
+                                shift: selectedShift,
+                                room: roomCtrl.text.trim().isEmpty
+                                    ? 'Sala a definir'
+                                    : roomCtrl.text.trim(),
+                                nextClass: 'Em breve',
+                              );
+
+                              widget.viewModel.addClass(newClass);
+                              Navigator.of(ctx).pop();
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Turma "${newClass.name}" cadastrada!',
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          child: const Text('Salvar Turma'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -203,7 +224,9 @@ class _ClassesViewState extends State<ClassesView> {
     final nameCtrl = TextEditingController(text: academicClass.name);
     final courseCtrl = TextEditingController(text: academicClass.course);
     final codeCtrl = TextEditingController(text: academicClass.code);
-    final shiftCtrl = TextEditingController(text: academicClass.shift);
+    String selectedShift = _availableShifts.contains(academicClass.shift)
+        ? academicClass.shift
+        : 'Noturno';
     final roomCtrl = TextEditingController(text: academicClass.room);
     final nextClassCtrl = TextEditingController(text: academicClass.nextClass);
     final formKey = GlobalKey<FormState>();
@@ -212,125 +235,159 @@ class _ClassesViewState extends State<ClassesView> {
       context: context,
       isScrollControlled: true,
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: AppSpacing.xl,
-            right: AppSpacing.xl,
-            top: AppSpacing.sm,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.xl,
-          ),
-          child: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SheetHeader(
-                    title: 'Editar Turma',
-                    subtitle: 'Atualize os dados cadastrais da turma',
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  TextFormField(
-                    controller: nameCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Nome da Turma / Disciplina',
-                      prefixIcon: Icon(Icons.menu_book_outlined),
-                    ),
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  TextFormField(
-                    controller: courseCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Curso',
-                      prefixIcon: Icon(Icons.school_outlined),
-                    ),
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Informe o curso' : null,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: codeCtrl,
-                          decoration: const InputDecoration(labelText: 'Código'),
-                          validator: (v) =>
-                              (v == null || v.trim().isEmpty) ? 'Informe o código' : null,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: TextFormField(
-                          controller: shiftCtrl,
-                          decoration: const InputDecoration(labelText: 'Turno'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: roomCtrl,
-                          decoration: const InputDecoration(labelText: 'Sala / Local'),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: TextFormField(
-                          controller: nextClassCtrl,
-                          decoration: const InputDecoration(labelText: 'Próxima Aula'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: () {
-                        if (formKey.currentState?.validate() ?? false) {
-                          final updated = academicClass.copyWith(
-                            name: nameCtrl.text.trim(),
-                            course: courseCtrl.text.trim(),
-                            code: codeCtrl.text.trim(),
-                            shift: shiftCtrl.text.trim(),
-                            room: roomCtrl.text.trim(),
-                            nextClass: nextClassCtrl.text.trim(),
-                          );
-
-                          widget.viewModel.updateClass(updated);
-                          Navigator.of(ctx).pop();
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Turma "${updated.name}" atualizada!'),
-                            ),
-                          );
-                        }
-                      },
-                      child: const Text('Salvar Alterações'),
-                    ),
-                  ),
-                ],
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: AppSpacing.xl,
+                right: AppSpacing.xl,
+                top: AppSpacing.sm,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.xl,
               ),
-            ),
-          ),
+              child: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SheetHeader(
+                        title: 'Editar Turma',
+                        subtitle: 'Atualize os dados cadastrais da turma',
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      TextFormField(
+                        controller: nameCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Nome da Turma / Disciplina',
+                          prefixIcon: Icon(Icons.menu_book_outlined),
+                        ),
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'Informe o nome'
+                            : null,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      TextFormField(
+                        controller: courseCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Curso',
+                          prefixIcon: Icon(Icons.school_outlined),
+                        ),
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'Informe o curso'
+                            : null,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: codeCtrl,
+                              decoration: const InputDecoration(
+                                labelText: 'Código',
+                              ),
+                              validator: (v) => (v == null || v.trim().isEmpty)
+                                  ? 'Informe o código'
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: selectedShift,
+                              dropdownColor: AppColors.surfaceElevated,
+                              decoration: const InputDecoration(
+                                labelText: 'Turno',
+                              ),
+                              items: _availableShifts
+                                  .map((s) => DropdownMenuItem(
+                                        value: s,
+                                        child: Text(s),
+                                      ))
+                                  .toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setModalState(() => selectedShift = val);
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: roomCtrl,
+                              decoration: const InputDecoration(
+                                labelText: 'Sala / Local',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: TextFormField(
+                              controller: nextClassCtrl,
+                              decoration: const InputDecoration(
+                                labelText: 'Próxima Aula',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.xxl),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: () {
+                            if (formKey.currentState?.validate() ?? false) {
+                              final updated = academicClass.copyWith(
+                                name: nameCtrl.text.trim(),
+                                course: courseCtrl.text.trim(),
+                                code: codeCtrl.text.trim(),
+                                shift: selectedShift,
+                                room: roomCtrl.text.trim(),
+                                nextClass: nextClassCtrl.text.trim(),
+                              );
+
+                              widget.viewModel.updateClass(updated);
+                              Navigator.of(ctx).pop();
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Turma "${updated.name}" atualizada!',
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          child: const Text('Salvar Alterações'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         );
       },
     );
   }
 
-  void _showDeleteClassDialog(BuildContext context, AcademicClass academicClass) {
+  void _showDeleteClassDialog(
+    BuildContext context,
+    AcademicClass academicClass,
+  ) {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Excluir Turma'),
-        content: Text('Deseja realmente excluir a turma "${academicClass.name}"?'),
+        content: Text(
+          'Deseja realmente excluir a turma "${academicClass.name}"?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -413,8 +470,8 @@ class _ClassesViewState extends State<ClassesView> {
               const SizedBox(width: AppSpacing.xs),
             ],
           ),
-          floatingActionButton: status == ClassesStatus.success ||
-                  status == ClassesStatus.empty
+          floatingActionButton:
+              status == ClassesStatus.success || status == ClassesStatus.empty
               ? FloatingActionButton.extended(
                   onPressed: () => _showAddClassDialog(context),
                   icon: const Icon(Icons.add_rounded),
@@ -432,10 +489,7 @@ class _ClassesViewState extends State<ClassesView> {
     );
   }
 
-  Widget _buildBody(
-    BuildContext context,
-    ClassesStatus status,
-  ) {
+  Widget _buildBody(BuildContext context, ClassesStatus status) {
     // 1. Estado de Carregamento
     if (status == ClassesStatus.loading) {
       return const LoadingStateView(message: 'Carregando turmas...');
@@ -445,8 +499,7 @@ class _ClassesViewState extends State<ClassesView> {
     if (status == ClassesStatus.error) {
       return ErrorStateView(
         title: 'Falha ao sincronizar turmas',
-        message: widget.viewModel.errorMessage ??
-            'Ocorreu uma falha inesperada ao tentar carregar suas turmas. Verifique sua conexão e tente novamente.',
+        message: widget.viewModel.errorMessage ?? 'Ocorreu uma falha inesperada ao tentar carregar suas turmas. Verifique sua conexão e tente novamente.',
         retryLabel: 'Recarregar turmas',
         onRetry: () => widget.viewModel.loadClasses(),
         secondaryActionLabel: 'Restaurar dados locais',
@@ -459,8 +512,7 @@ class _ClassesViewState extends State<ClassesView> {
       return EmptyStateView(
         icon: Icons.school_outlined,
         title: 'Nenhuma turma cadastrada',
-        message:
-            'Você ainda não possui turmas vinculadas ao seu perfil neste semestre. Cadastre uma nova turma ou restaure os exemplos.',
+        message: 'Você ainda não possui turmas vinculadas ao seu perfil neste semestre. Cadastre uma nova turma ou restaure os exemplos.',
         actionLabel: 'Cadastrar primeira turma',
         onActionPressed: () => _showAddClassDialog(context),
         secondaryActionLabel: 'Restaurar turmas de exemplo',
@@ -549,60 +601,56 @@ class _ClassesViewState extends State<ClassesView> {
                   96, // Espaço extra para o FloatingActionButton
                 ),
                 sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final item = filtered[index];
-                      return ClassCard(
-                        academicClass: item,
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => StudentsView(
-                                viewModel: StudentsViewModel(
-                                  academicClass: item,
-                                  repository:
-                                      AcademicScope.of(context).students,
-                                  onStudentsCountChanged: (count) {
-                                    widget.viewModel.updateClass(
-                                      item.copyWith(studentsCount: count),
-                                    );
-                                  },
-                                ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final item = filtered[index];
+                    return ClassCard(
+                      academicClass: item,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => StudentsView(
+                              viewModel: StudentsViewModel(
+                                academicClass: item,
+                                repository: AcademicScope.of(context).students,
+                                onStudentsCountChanged: (count) {
+                                  widget.viewModel.updateClass(
+                                    item.copyWith(studentsCount: count),
+                                  );
+                                },
                               ),
                             ),
-                          );
-                        },
-                        onAttendanceTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => AttendanceView(
-                                viewModel: AttendanceViewModel(
-                                  academicClass: item,
-                                  repository:
-                                      AcademicScope.of(context).attendance,
-                                ),
+                          ),
+                        );
+                      },
+                      onAttendanceTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => AttendanceView(
+                              viewModel: AttendanceViewModel(
+                                academicClass: item,
+                                repository: AcademicScope.of(context)
+                                    .attendance,
                               ),
                             ),
-                          );
-                        },
-                        onGradesTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => GradesView(
-                                viewModel: GradesViewModel(
-                                  academicClass: item,
-                                  repository: AcademicScope.of(context).grades,
-                                ),
+                          ),
+                        );
+                      },
+                      onGradesTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => GradesView(
+                              viewModel: GradesViewModel(
+                                academicClass: item,
+                                repository: AcademicScope.of(context).grades,
                               ),
                             ),
-                          );
-                        },
-                        onEditTap: () => _showEditClassDialog(context, item),
-                        onDeleteTap: () => _showDeleteClassDialog(context, item),
-                      );
-                    },
-                    childCount: filtered.length,
-                  ),
+                          ),
+                        );
+                      },
+                      onEditTap: () => _showEditClassDialog(context, item),
+                      onDeleteTap: () => _showDeleteClassDialog(context, item),
+                    );
+                  }, childCount: filtered.length),
                 ),
               ),
           ],
