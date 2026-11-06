@@ -199,6 +199,161 @@ class _ClassesViewState extends State<ClassesView> {
     );
   }
 
+  void _showEditClassDialog(BuildContext context, AcademicClass academicClass) {
+    final nameCtrl = TextEditingController(text: academicClass.name);
+    final courseCtrl = TextEditingController(text: academicClass.course);
+    final codeCtrl = TextEditingController(text: academicClass.code);
+    final shiftCtrl = TextEditingController(text: academicClass.shift);
+    final roomCtrl = TextEditingController(text: academicClass.room);
+    final nextClassCtrl = TextEditingController(text: academicClass.nextClass);
+    final formKey = GlobalKey<FormState>();
+
+    showAppBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: AppSpacing.xl,
+            right: AppSpacing.xl,
+            top: AppSpacing.sm,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.xl,
+          ),
+          child: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SheetHeader(
+                    title: 'Editar Turma',
+                    subtitle: 'Atualize os dados cadastrais da turma',
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  TextFormField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Nome da Turma / Disciplina',
+                      prefixIcon: Icon(Icons.menu_book_outlined),
+                    ),
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  TextFormField(
+                    controller: courseCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Curso',
+                      prefixIcon: Icon(Icons.school_outlined),
+                    ),
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Informe o curso' : null,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: codeCtrl,
+                          decoration: const InputDecoration(labelText: 'Código'),
+                          validator: (v) =>
+                              (v == null || v.trim().isEmpty) ? 'Informe o código' : null,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: TextFormField(
+                          controller: shiftCtrl,
+                          decoration: const InputDecoration(labelText: 'Turno'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: roomCtrl,
+                          decoration: const InputDecoration(labelText: 'Sala / Local'),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: TextFormField(
+                          controller: nextClassCtrl,
+                          decoration: const InputDecoration(labelText: 'Próxima Aula'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.xxl),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () {
+                        if (formKey.currentState?.validate() ?? false) {
+                          final updated = academicClass.copyWith(
+                            name: nameCtrl.text.trim(),
+                            course: courseCtrl.text.trim(),
+                            code: codeCtrl.text.trim(),
+                            shift: shiftCtrl.text.trim(),
+                            room: roomCtrl.text.trim(),
+                            nextClass: nextClassCtrl.text.trim(),
+                          );
+
+                          widget.viewModel.updateClass(updated);
+                          Navigator.of(ctx).pop();
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Turma "${updated.name}" atualizada!'),
+                            ),
+                          );
+                        }
+                      },
+                      child: const Text('Salvar Alterações'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showDeleteClassDialog(BuildContext context, AcademicClass academicClass) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Excluir Turma'),
+        content: Text('Deseja realmente excluir a turma "${academicClass.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () {
+              widget.viewModel.removeClass(academicClass.id);
+              Navigator.of(ctx).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Turma "${academicClass.name}" excluída.'),
+                ),
+              );
+            },
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -405,6 +560,13 @@ class _ClassesViewState extends State<ClassesView> {
                               builder: (_) => StudentsView(
                                 viewModel: StudentsViewModel(
                                   academicClass: item,
+                                  repository:
+                                      AcademicScope.of(context).students,
+                                  onStudentsCountChanged: (count) {
+                                    widget.viewModel.updateClass(
+                                      item.copyWith(studentsCount: count),
+                                    );
+                                  },
                                 ),
                               ),
                             ),
@@ -435,6 +597,8 @@ class _ClassesViewState extends State<ClassesView> {
                             ),
                           );
                         },
+                        onEditTap: () => _showEditClassDialog(context, item),
+                        onDeleteTap: () => _showDeleteClassDialog(context, item),
                       );
                     },
                     childCount: filtered.length,
