@@ -13,13 +13,16 @@ class ClassCard extends StatelessWidget {
     this.onTap,
     this.onAttendanceTap,
     this.onGradesTap,
+    this.onEditTap,
+    this.onDeleteTap,
   });
 
   final AcademicClass academicClass;
   final VoidCallback? onTap;
   final VoidCallback? onAttendanceTap;
   final VoidCallback? onGradesTap;
-
+  final VoidCallback? onEditTap;
+  final VoidCallback? onDeleteTap;
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -36,6 +39,45 @@ class ClassCard extends StatelessWidget {
               StatusBadge(label: academicClass.code, tone: AppTone.accent),
               const Spacer(),
               Text(academicClass.semester, style: textTheme.labelMedium),
+              if (onEditTap != null || onDeleteTap != null) ...[
+                const SizedBox(width: AppSpacing.xs),
+                PopupMenuButton<String>(
+                  padding: EdgeInsets.zero,
+                  icon: const Icon(
+                    Icons.more_vert,
+                    size: AppSizes.iconSm,
+                    color: AppColors.textSecondary,
+                  ),
+                  onSelected: (val) {
+                    if (val == 'edit') onEditTap?.call();
+                    if (val == 'delete') onDeleteTap?.call();
+                  },
+                  itemBuilder: (ctx) => [
+                    if (onEditTap != null)
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit_outlined, size: 20),
+                            SizedBox(width: AppSpacing.md),
+                            Text('Editar Turma'),
+                          ],
+                        ),
+                      ),
+                    if (onDeleteTap != null)
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline, size: 20, color: AppColors.danger),
+                            SizedBox(width: AppSpacing.md),
+                            Text('Excluir Turma', style: TextStyle(color: AppColors.danger)),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ],
             ],
           ),
           const SizedBox(height: AppSpacing.md),
@@ -83,11 +125,7 @@ class ClassCard extends StatelessWidget {
           // Rodapé: próxima aula + ações rápidas
           Row(
             children: [
-              const Icon(
-                Icons.circle,
-                size: 7,
-                color: AppColors.success,
-              ),
+              const Icon(Icons.circle, size: 7, color: AppColors.success),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(

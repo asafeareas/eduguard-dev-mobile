@@ -3,13 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../models/academic/academic_class.dart';
 import '../../services/classes_repository.dart';
 
-enum ClassesStatus {
-  initial,
-  loading,
-  success,
-  empty,
-  error,
-}
+enum ClassesStatus { initial, loading, success, empty, error }
 
 class ClassesViewModel extends ChangeNotifier {
   /// Com [repository], as turmas são carregadas e persistidas no repositório
@@ -19,8 +13,8 @@ class ClassesViewModel extends ChangeNotifier {
     ClassesRepository? repository,
   }) : _repository = repository,
        _classes = initialClasses != null
-            ? List.of(initialClasses)
-            : (repository != null ? [] : List.of(AcademicClass.sampleClasses)) {
+           ? List.of(initialClasses)
+           : (repository != null ? [] : List.of(AcademicClass.sampleClasses)) {
     if (repository != null && initialClasses == null) {
       _status = ClassesStatus.loading;
       _loadFromRepository();
@@ -87,8 +81,7 @@ class ClassesViewModel extends ChangeNotifier {
 
     if (forceError) {
       _status = ClassesStatus.error;
-      _errorMessage =
-          'Falha na sincronização com o servidor acadêmico. Verifique sua conexão e tente novamente.';
+      _errorMessage = 'Falha na sincronização com o servidor acadêmico. Verifique sua conexão e tente novamente.';
       notifyListeners();
       return;
     }
@@ -137,8 +130,7 @@ class ClassesViewModel extends ChangeNotifier {
   /// Força o estado de erro para demonstração/testes
   void simulateError([String? message]) {
     _status = ClassesStatus.error;
-    _errorMessage = message ??
-        'Erro ao carregar a lista de turmas. Não foi possível conectar ao sistema institucional.';
+    _errorMessage = message ?? 'Erro ao carregar a lista de turmas. Não foi possível conectar ao sistema institucional.';
     notifyListeners();
   }
 
@@ -175,6 +167,16 @@ class ClassesViewModel extends ChangeNotifier {
     _status = ClassesStatus.success;
     notifyListeners();
     _persist();
+  }
+
+  /// Atualiza os dados de uma turma existente
+  void updateClass(AcademicClass updatedClass) {
+    final index = _classes.indexWhere((c) => c.id == updatedClass.id);
+    if (index != -1) {
+      _classes[index] = updatedClass;
+      notifyListeners();
+      _persist();
+    }
   }
 
   /// Remove uma turma pelo ID

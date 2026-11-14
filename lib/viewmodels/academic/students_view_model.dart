@@ -2,21 +2,120 @@ import 'package:flutter/foundation.dart';
 
 import '../../models/academic/academic_class.dart';
 import '../../models/academic/student.dart';
+import '../../services/students_repository.dart';
 
 class StudentsViewModel extends ChangeNotifier {
-  StudentsViewModel({required this.academicClass, List<Student>? students})
-    : _students = students ?? SampleStudents.forClass(academicClass.id);
+  StudentsViewModel({
+    required this.academicClass,
+    List<Student>? students,
+    StudentsRepository? repository,
+    this.onStudentsCountChanged,
+  })  : _repository = repository,
+        _students = students != null
+            ? List.of(students)
+            : (repository != null
+                ? []
+                : List.of(SampleStudents.forClass(academicClass.id))) {
+    if (repository != null && students == null) {
+      _isLoading = true;
+      _loadFromRepository();
+    } else {
+      _isLoading = false;
+    }
+  }
 
   final AcademicClass academicClass;
-  final List<Student> _students;
+  final StudentsRepository? _repository;
+  final ValueChanged<int>? onStudentsCountChanged;
+  List<Student> _students;
+  bool _isLoading = false;
+  String _searchQuery = '';
 
-  List<Student> get students => List.unmodifiable(
-    _students.where((student) => student.classId == academicClass.id),
-  );
+  bool get isLoading => _isLoading;
+  String get searchQuery => _searchQuery;
+
+  int get totalStudentsCount =>
+      _students.where((s) => s.classId == academicClass.id).length;
+
+  List<Student> get students {
+    final classStudents =
+        _students.where((student) => student.classId == academicClass.id);
+    if (_searchQuery.trim().isEmpty) {
+      return List.unmodifiable(classStudents.toList());
+    }
+    final query = _searchQuery.toLowerCase().trim();
+    return List.unmodifiable(
+      classStudents.where((s) {
+        return s.name.toLowerCase().contains(query) ||
+            s.registration.toLowerCase().contains(query) ||
+            s.email.toLowerCase().contains(query);
+      }).toList(),
+    );
+  }
+
+  void updateSearchQuery(String query) {
+    _searchQuery = query;
+    notifyListeners();
+  }
+
+  void clearSearch() {
+    _searchQuery = '';
+    notifyListeners();
+  }
+
+  Future<void> _loadFromRepository() async {
+    if (_repository == null) return;
+    final loaded = await _repository!.getStudentsForClass(academicClass.id);
+    _students = List.of(loaded);
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  /// Adiciona um novo estudante na turma
+  Future<void> addStudent({
+    required String name,
+    required String registration,
+    required String email,
+  }) async {
+    final newStudent = Student(
+      id: '${academicClass.id}-aluno-${DateTime.now().millisecondsSinceEpoch}',
+      classId: academicClass.id,
+      name: name.trim(),
+      registration: registration.trim(),
+      email: email.trim(),
+      attendance: 100,
+      averageGrade: 0.0,
+    );
+
+    _students.insert(0, newStudent);
+    notifyListeners();
+    onStudentsCountChanged?.call(totalStudentsCount);
+    await _repository?.saveStudent(newStudent);
+  }
+
+  /// Atualiza os dados de um estudante existente
+  Future<void> updateStudent(Student updatedStudent) async {
+    final index = _students.indexWhere((s) => s.id == updatedStudent.id);
+    if (index != -1) {
+      _students[index] = updatedStudent;
+      notifyListeners();
+      await _repository?.saveStudent(updatedStudent);
+    }
+  }
+
+  /// Remove um estudante pelo ID
+  Future<void> removeStudent(String id) async {
+    _students.removeWhere((s) => s.id == id);
+    notifyListeners();
+    onStudentsCountChanged?.call(totalStudentsCount);
+    await _repository?.deleteStudent(id);
+  }
 
   Student? studentById(String id) {
-    for (final student in students) {
-      if (student.id == id) return student;
+    for (final student in _students) {
+      if (student.id == id && student.classId == academicClass.id) {
+        return student;
+      }
     }
     return null;
   }

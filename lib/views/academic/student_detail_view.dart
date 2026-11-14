@@ -12,17 +12,61 @@ class StudentDetailView extends StatelessWidget {
     super.key,
     required this.student,
     required this.academicClass,
+    this.onEdit,
+    this.onDelete,
   });
 
   final Student student;
   final AcademicClass academicClass;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Detalhes do estudante')),
+      appBar: AppBar(
+        title: const Text('Detalhes do estudante'),
+        actions: [
+          if (onEdit != null || onDelete != null)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_horiz_rounded),
+              onSelected: (val) {
+                if (val == 'edit') onEdit?.call();
+                if (val == 'delete') {
+                  onDelete?.call();
+                  Navigator.of(context).pop();
+                }
+              },
+              itemBuilder: (ctx) => [
+                if (onEdit != null)
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit_outlined, size: 20),
+                        SizedBox(width: AppSpacing.md),
+                        Text('Editar Estudante'),
+                      ],
+                    ),
+                  ),
+                if (onDelete != null)
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_outline, size: 20, color: AppColors.danger),
+                        SizedBox(width: AppSpacing.md),
+                        Text('Remover Estudante', style: TextStyle(color: AppColors.danger)),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          const SizedBox(width: AppSpacing.xs),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.page,

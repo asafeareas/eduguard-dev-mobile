@@ -4,6 +4,7 @@ import 'attendance_repository.dart';
 import 'classes_repository.dart';
 import 'grades_repository.dart';
 import 'storage/key_value_store.dart';
+import 'students_repository.dart';
 
 /// Repositórios acadêmicos de um único professor autenticado.
 ///
@@ -26,6 +27,10 @@ class AcademicDataScope {
       populateSamples: populateSamples,
     );
     grades = GradesRepository(store: _store, populateSamples: populateSamples);
+    students = StudentsRepository(
+      store: _store,
+      populateSamples: populateSamples,
+    );
   }
 
   /// UID do professor dono dos dados.
@@ -35,6 +40,7 @@ class AcademicDataScope {
   late final ClassesRepository classes;
   late final AttendanceRepository attendance;
   late final GradesRepository grades;
+  late final StudentsRepository students;
 }
 
 /// Disponibiliza o [AcademicDataScope] do professor autenticado para todas
